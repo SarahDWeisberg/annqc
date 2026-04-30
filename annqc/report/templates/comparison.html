@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }}</title>
+  <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #F7F8FA;
+      color: #2C3E50;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .page-top-border {
+      height: 4px;
+      background: #4A90D9;
+      width: 100%;
+    }
+
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #2C3E50;
+      border-bottom: 2px solid #E8ECF0;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .header-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+    }
+
+    .header-brand .brand-name {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #4A90D9;
+      letter-spacing: -0.5px;
+    }
+
+    .header-brand .brand-version {
+      font-size: 0.8rem;
+      color: #95A5A6;
+      margin-top: 2px;
+    }
+
+    .header-center {
+      text-align: center;
+    }
+
+    .header-center h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #2C3E50;
+      line-height: 1.3;
+    }
+
+    .header-meta {
+      text-align: right;
+      font-size: 0.82rem;
+      color: #7F8C8D;
+      line-height: 1.8;
+    }
+
+    .header-meta .meta-label {
+      font-weight: 600;
+      color: #95A5A6;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+    }
+
+    .header-separator {
+      height: 1px;
+      background: linear-gradient(to right, #4A90D9, #E8ECF0, #E8ECF0);
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 700px) {
+      .header-grid { grid-template-columns: 1fr; text-align: center; }
+      .header-meta { text-align: center; }
+    }
+
+    /* ── Summary cards ───────────────────────────────────────── */
+    .comparison-summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 700px) {
+      .comparison-summary-grid { grid-template-columns: 1fr; }
+    }
+
+    .summary-card {
+      background: #F7F8FA;
+      border-radius: 8px;
+      border: 2px solid #E8ECF0;
+      padding: 20px 24px;
+    }
+
+    .summary-card.card-a { border-top: 4px solid #4A90D9; }
+    .summary-card.card-b { border-top: 4px solid #E74C3C; }
+
+    .summary-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #2C3E50;
+    }
+
+    .summary-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #E8ECF0;
+      font-size: 0.9rem;
+    }
+
+    .summary-stat:last-child { border-bottom: none; }
+
+    .summary-stat .stat-key {
+      color: #7F8C8D;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.4px;
+      align-self: center;
+    }
+
+    .summary-stat .stat-val {
+      font-weight: 700;
+      color: #2C3E50;
+      font-size: 1rem;
+    }
+
+    /* ── Badges ──────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      border-radius: 4px;
+      padding: 4px 12px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .badge-pass  { background: #27AE60; }
+    .badge-fail  { background: #E74C3C; }
+    .badge-warn  { background: #F39C12; }
+
+    /* ── Tables ──────────────────────────────────────────────── */
+    .tbl-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    thead tr { background: #F0F4F8; }
+
+    thead th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: #4A5568;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(odd)  { background: #fff; }
+    tbody tr:nth-child(even) { background: #F7F8FA; }
+    tbody tr:hover { background: #EBF4FF; transition: background 0.15s; }
+
+    tbody td {
+      padding: 10px 14px;
+      color: #2C3E50;
+      border-bottom: 1px solid #F0F4F8;
+    }
+
+    .text-right { text-align: right; }
+
+    /* ── Plots ───────────────────────────────────────────────── */
+    .plot-grid-2x2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .plot-grid-2x2 { grid-template-columns: 1fr; }
+    }
+
+    .plot-box {
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid #E8ECF0;
+      padding: 12px;
+      min-height: 320px;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    .report-footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #95A5A6;
+      padding: 20px 0 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-top-border"></div>
+
+<div class="page-wrapper">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       HEADER
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card" style="margin-bottom: 0; border-radius: 8px 8px 0 0;">
+    <div class="header-grid">
+
+      <div class="header-brand">
+        <div class="brand-name">AnnQC</div>
+        <div class="brand-version">Comparison Report</div>
+      </div>
+
+      <div class="header-center">
+        <h1>{{ title }}</h1>
+      </div>
+
+      <div class="header-meta">
+        <div class="meta-label">Dataset A</div>
+        <div>{{ label_a }}</div>
+        <div style="margin-top: 6px;" class="meta-label">Dataset B</div>
+        <div>{{ label_b }}</div>
+      </div>
+
+    </div>
+  </div>
+  <div class="header-separator"></div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 1 — Side-by-side Summary Cards
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="section-title">Run Summary</div>
+
+    <div class="comparison-summary-grid">
+
+      <!-- Dataset A -->
+      <div class="summary-card card-a">
+        <h3>{{ label_a }}</h3>
+        <div class="summary-stat">
+          <span class="stat-key">Input Cells</span>
+          <span class="stat-val">{{ "{:,}".format(record_a.cell_counts.input) if record_a.cell_counts is defined and record_a.cell_counts.input is defined else "N/A" }}</span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-key">Output Cells</span>
+          <span class="stat-val">{{ "{:,}".format(record_a.cell_counts.output) if record_a.cell_counts is defined and record_a.cell_counts.output is defined else "N/A" }}</span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-key">% Retained</span>
+          <span class="stat-val">
+            {% if record_a.cell_counts is defined and record_a.cell_counts.input is defined and record_a.cell_counts.input > 0 %}
+              {{ "%.1f" | format(record_a.cell_counts.output / record_a.cell_counts.input * 100) }}%
+            {% else %}N/A{% endif %}
+          </span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-key">Run Date</span>
+          <span class="stat-val">{{ record_a.date if record_a.date is defined else "N/A" }}</span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-key">Status</span>
+          <span class="stat-val">
+            {% set st = record_a.status if record_a.status is defined else "N/A" %}
+            {% if st == "PASS" %}<span class="badge badge-pass">PASS</span>
+            {% elif st == "FAIL" %}<span class="badge badge-fail">FAIL</span>
+            {% elif st == "WARN" %}<span class="badge badge-warn">WARN</span>
+            {% else %}{{ st }}{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <!-- Dataset B -->
+      <div class="summary-card card-b">
+        <h3>{{ label_b }}</h3>
+        <div class="summary-stat">
+          <span class="stat-key">Input Cells</span>
+          <span class="stat-val">{{ "{:,}".format(record_b.cell_counts.input) if record_b.cell_counts is defined and record_b.cell_counts.input is defined else "N/A" }}</span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-key">Output Cells</span>
+          <span class="stat-val">{{ "{:,}".format(record_b.cell_counts.output) if record_b.cell_counts is defined and record_b.cell_counts.output is defined else "N/A" }}</span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-key">% Retained</span>
+          <span class="stat-val">
+            {% if record_b.cell_counts is defined and record_b.cell_counts.input is defined and record_b.cell_counts.input > 0 %}
+              {{ "%.1f" | format(record_b.cell_counts.output / record_b.cell_counts.input * 100) }}%
+            {% else %}N/A{% endif %}
+          </span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-key">Run Date</span>
+          <span class="stat-val">{{ record_b.date if record_b.date is defined else "N/A" }}</span>
+        </div>
+        <div class="summary-stat">
+          <span class="stat-key">Status</span>
+          <span class="stat-val">
+            {% set st = record_b.status if record_b.status is defined else "N/A" %}
+            {% if st == "PASS" %}<span class="badge badge-pass">PASS</span>
+            {% elif st == "FAIL" %}<span class="badge badge-fail">FAIL</span>
+            {% elif st == "WARN" %}<span class="badge badge-warn">WARN</span>
+            {% else %}{{ st }}{% endif %}
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 2 — Thresholds Comparison Table
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="section-title">Thresholds Comparison</div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Threshold</th>
+            <th class="text-right">{{ label_a }}</th>
+            <th class="text-right">{{ label_b }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set thr_keys = [
+            ("mito_max_pct",        "Max Mito %"),
+            ("min_genes",           "Min Genes"),
+            ("max_genes",           "Max Genes"),
+            ("min_counts",          "Min Counts"),
+            ("doublet_threshold",   "Doublet Threshold"),
+          ] %}
+          {% for key, label in thr_keys %}
+          <tr>
+            <td>{{ label }}</td>
+            <td class="text-right">
+              {% set va = record_a.thresholds[key] if record_a.thresholds is defined and key in record_a.thresholds else None %}
+              {{ va if va is not none else "—" }}
+            </td>
+            <td class="text-right">
+              {% set vb = record_b.thresholds[key] if record_b.thresholds is defined and key in record_b.thresholds else None %}
+              {{ vb if vb is not none else "—" }}
+            </td>
+          </tr>
+          {% endfor %}
+          <tr>
+            <td>Threshold Method</td>
+            <td class="text-right">{{ record_a.threshold_method if record_a.threshold_method is defined else "manual" }}</td>
+            <td class="text-right">{{ record_b.threshold_method if record_b.threshold_method is defined else "manual" }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 3 — Cell Counts Comparison Table
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="section-title">Cell Counts Comparison</div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th class="text-right">{{ label_a }}</th>
+            <th class="text-right">{{ label_b }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set count_keys = [
+            ("input",                "Input"),
+            ("after_mito_filter",    "After Mito Filter"),
+            ("after_gene_filter",    "After Gene Filter"),
+            ("after_count_filter",   "After Count Filter"),
+            ("after_doublet_filter", "After Doublet Filter"),
+            ("output",               "Output"),
+          ] %}
+          {% for key, label in count_keys %}
+          {% set va = record_a.cell_counts[key] if record_a.cell_counts is defined and key in record_a.cell_counts else None %}
+          {% set vb = record_b.cell_counts[key] if record_b.cell_counts is defined and key in record_b.cell_counts else None %}
+          {% if va is not none or vb is not none %}
+          <tr>
+            <td>{{ label }}</td>
+            <td class="text-right">{{ "{:,}".format(va) if va is not none else "—" }}</td>
+            <td class="text-right">{{ "{:,}".format(vb) if vb is not none else "—" }}</td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 4 — QC Metric Violin Plots (2×2 grid)
+       ═══════════════════════════════════════════════════════════ -->
+  {% if comparison_plots %}
+  <div class="card">
+    <div class="section-title">QC Metric Distributions</div>
+
+    <div class="plot-grid-2x2">
+
+      {% if comparison_plots.pct_counts_mt %}
+      <div class="plot-box" id="cmp-plot-mito"></div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var fig = {{ comparison_plots.pct_counts_mt }};
+        Plotly.newPlot('cmp-plot-mito', fig.data, fig.layout, {responsive: true});
+      });
+      </script>
+      {% endif %}
+
+      {% if comparison_plots.n_genes_by_counts %}
+      <div class="plot-box" id="cmp-plot-genes"></div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var fig = {{ comparison_plots.n_genes_by_counts }};
+        Plotly.newPlot('cmp-plot-genes', fig.data, fig.layout, {responsive: true});
+      });
+      </script>
+      {% endif %}
+
+      {% if comparison_plots.total_counts %}
+      <div class="plot-box" id="cmp-plot-counts"></div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var fig = {{ comparison_plots.total_counts }};
+        Plotly.newPlot('cmp-plot-counts', fig.data, fig.layout, {responsive: true});
+      });
+      </script>
+      {% endif %}
+
+      {% if comparison_plots.pct_counts_ribo %}
+      <div class="plot-box" id="cmp-plot-ribo"></div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var fig = {{ comparison_plots.pct_counts_ribo }};
+        Plotly.newPlot('cmp-plot-ribo', fig.data, fig.layout, {responsive: true});
+      });
+      </script>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FOOTER — Software Versions
+       ═══════════════════════════════════════════════════════════ -->
+  {% if software_versions %}
+  <div class="card">
+    <div class="section-title" style="font-size: 1rem; margin-bottom: 12px;">Software Versions</div>
+    <div class="tbl-wrap">
+      <table style="max-width: 480px;">
+        <thead>
+          <tr>
+            <th>Package</th>
+            <th>Version</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pkg, ver in software_versions.items() %}
+          <tr>
+            <td><code style="background: #F0F4F8; border-radius: 3px; padding: 1px 5px; font-family: 'SFMono-Regular', Consolas, monospace;">{{ pkg }}</code></td>
+            <td>{{ ver }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="report-footer">
+    Generated by AnnQC &mdash; Single-Cell Quality Control Pipeline
+  </div>
+
+</div><!-- /.page-wrapper -->
+
+</body>
+</html>

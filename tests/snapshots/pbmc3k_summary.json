@@ -1,0 +1,20 @@
+{
+  "n_cells_output": 2670,
+  "thresholds": {
+    "method": "manual",
+    "mito_max_pct": 20,
+    "min_genes": 200,
+    "max_genes": 6000,
+    "min_counts": 500,
+    "doublet_threshold": 0.41250187561785034
+  },
+  "cell_counts": {
+    "input": 2700,
+    "after_mito_filter": 2699,
+    "after_gene_filter": 2699,
+    "after_count_filter": 2699,
+    "after_doublet_filter": 2670,
+    "output": 2670
+  },
+  "status": "PASS"
+}

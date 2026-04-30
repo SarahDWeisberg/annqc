@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.DS_Store
+*.h5ad
+# Generated report outputs (top-level only, not templates)
+/report.html
+/report_*.html
+/cleaned*.h5ad
+data/
+.pytest_cache/
+.ipynb_checkpoints/
+*.ipynb
+sensitivity.html
+sensitivity_profiles.html
+validation_comparison.png
+CLAUDE.md
+*.h5ad
+report*.html

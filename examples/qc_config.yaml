@@ -1,0 +1,108 @@
+# AnnQC configuration file
+# All fields shown. Unspecified fields fall back to built-in defaults.
+# Pass this file to `annqc run --config qc_config.yaml`.
+
+# ---------------------------------------------------------------------------
+# Mitochondrial gene filtering
+# ---------------------------------------------------------------------------
+mito:
+  prefix: "MT-"     # Gene name prefix used to identify mitochondrial genes.
+                    # Use "MT-" for human datasets, "mt-" for mouse datasets.
+                    # Change to "Mt-" for some zebrafish or other organism gene
+                    # naming conventions.
+  max_pct: 20       # Maximum % mitochondrial reads allowed per cell (0-100).
+                    # Cells above this threshold are removed as likely damaged
+                    # or dying (cytoplasmic mRNA leaks out, enriching mito reads).
+                    # Typical range: 10-25 for human 10x Chromium data.
+                    # Lower thresholds (e.g. 10) give stricter, higher-quality sets;
+                    # higher thresholds (e.g. 30) retain more cells at the cost of
+                    # quality in tissues naturally high in mito expression (e.g. heart).
+
+# ---------------------------------------------------------------------------
+# Ribosomal gene filtering
+# ---------------------------------------------------------------------------
+ribo:
+  prefix: "RPS|RPL" # Regex pattern to identify ribosomal protein genes.
+                    # Matches RPS* (40S small subunit) and RPL* (60S large subunit).
+                    # For mouse use the same pattern; gene names are capitalised
+                    # identically (Rps/Rpl) so adjust to "Rps|Rpl" if needed.
+  max_pct: 50       # Maximum % ribosomal reads allowed per cell (0-100).
+                    # Very high ribo% can flag stressed cells or contamination.
+                    # Set to 100 to effectively disable this filter.
+                    # Typical range: 40-60 depending on cell type.
+
+# ---------------------------------------------------------------------------
+# Cell-level count and gene filters
+# ---------------------------------------------------------------------------
+cells:
+  min_genes: 200    # Minimum number of genes detected per cell.
+                    # Cells expressing fewer unique genes are removed — these
+                    # are likely empty droplets or very low-quality barcodes.
+                    # Typical: 200-500. Increase to 500 for stricter QC.
+  max_genes: 6000   # Maximum number of genes detected per cell.
+                    # Cells above this may be multiplets (two cells captured in
+                    # one droplet). Typical: 4000-8000.
+                    # Set to null (no quotes) to disable the upper gene-count
+                    # filter entirely.
+  min_counts: 500   # Minimum total UMI counts per cell.
+                    # Cells with fewer total transcripts are considered
+                    # low-quality or empty. Typical: 500-1000.
+  max_counts: null  # Maximum total UMI counts per cell.
+                    # Set to an integer (e.g. 50000) to remove barcodes with
+                    # suspiciously high counts, which can indicate multiplets.
+                    # null = no upper UMI limit applied.
+
+# ---------------------------------------------------------------------------
+# Gene-level filters
+# ---------------------------------------------------------------------------
+genes:
+  min_cells: 3      # Minimum number of cells in which a gene must be detected
+                    # to be retained in the matrix. Genes expressed in fewer
+                    # cells are removed as uninformative noise.
+                    # Typical: 3-10. Increase for very large datasets.
+
+# ---------------------------------------------------------------------------
+# Doublet detection
+# ---------------------------------------------------------------------------
+doublets:
+  method: "scrublet" # Doublet detection algorithm to use.
+                     # Currently supported: "scrublet".
+                     # Scrublet simulates artificial doublets and compares them
+                     # to the observed data to score each cell.
+  threshold: "auto"  # Doublet score threshold for calling a cell a doublet.
+                     # "auto": Scrublet fits a bimodal distribution and chooses
+                     #         the threshold automatically (recommended).
+                     # Float (0.0-1.0): override with a fixed score cutoff,
+                     #         e.g. 0.25. Lower = stricter (more cells removed).
+  simulate_doublet_ratio: 2.0
+                     # Number of simulated doublets as a multiple of real cells.
+                     # Higher values improve statistical accuracy of the
+                     # threshold estimate but increase memory and runtime.
+                     # Typical range: 1.5-3.0. Default 2.0 is suitable for most
+                     # datasets up to ~20k cells.
+
+# ---------------------------------------------------------------------------
+# Normalization
+# ---------------------------------------------------------------------------
+normalization:
+  method: "log1p"   # Normalization strategy applied after all filtering steps.
+                    # "log1p": normalize each cell to target_sum total counts,
+                    #           then apply log(x + 1) — the standard Scanpy
+                    #           scRNA-seq preprocessing workflow.
+                    # "none":  skip normalization entirely. Choose this if you
+                    #           intend to normalize downstream (e.g. scran,
+                    #           DESeq2 size factors, or a custom method).
+  target_sum: 10000 # Total UMI counts per cell after library-size normalization,
+                    # used only when method = "log1p". The conventional value is
+                    # 10000 (also called CP10K or 10k normalization). This makes
+                    # counts interpretable as counts per 10,000 molecules.
+
+# ---------------------------------------------------------------------------
+# Report metadata
+# ---------------------------------------------------------------------------
+report:
+  title: "Single-Cell QC Report"
+                    # Title displayed at the top of the HTML report.
+                    # Use a descriptive project or sample name for archiving.
+  author: ""        # Author name to display in the report header.
+                    # Leave blank ("") to omit the author line entirely.
