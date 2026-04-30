@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }}</title>
+  <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #F7F8FA;
+      color: #2C3E50;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── Page chrome ─────────────────────────────────────────── */
+    .page-top-border {
+      height: 4px;
+      background: #4A90D9;
+      width: 100%;
+    }
+
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── Cards ───────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* ── Section headings ────────────────────────────────────── */
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #2C3E50;
+      border-bottom: 2px solid #E8ECF0;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+    }
+
+    .section-subtitle {
+      font-size: 0.85rem;
+      color: #7F8C8D;
+      margin-top: -14px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .header-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+    }
+
+    .header-brand .brand-name {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #4A90D9;
+      letter-spacing: -0.5px;
+    }
+
+    .header-brand .brand-version {
+      font-size: 0.8rem;
+      color: #95A5A6;
+      margin-top: 2px;
+    }
+
+    .header-center {
+      text-align: center;
+    }
+
+    .header-center h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #2C3E50;
+      line-height: 1.3;
+    }
+
+    {% if author %}
+    .header-center .author {
+      font-size: 0.9rem;
+      color: #7F8C8D;
+      margin-top: 4px;
+    }
+    {% endif %}
+
+    .header-meta {
+      text-align: right;
+      font-size: 0.82rem;
+      color: #7F8C8D;
+      line-height: 1.8;
+    }
+
+    .header-meta .meta-label {
+      font-weight: 600;
+      color: #95A5A6;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+    }
+
+    .header-separator {
+      height: 1px;
+      background: linear-gradient(to right, #4A90D9, #E8ECF0, #E8ECF0);
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 700px) {
+      .header-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .header-meta { text-align: center; }
+    }
+
+    /* ── Executive summary stat cards ────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      padding: 24px 20px;
+      text-align: center;
+      border-top: 3px solid #4A90D9;
+    }
+
+    .stat-card .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #2C3E50;
+      line-height: 1.1;
+    }
+
+    .stat-card .stat-label {
+      font-size: 0.78rem;
+      color: #95A5A6;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    /* ── Badges ──────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      border-radius: 4px;
+      padding: 4px 12px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .badge-pass  { background: #27AE60; }
+    .badge-fail  { background: #E74C3C; }
+    .badge-warn  { background: #F39C12; }
+
+    /* ── Tables ──────────────────────────────────────────────── */
+    .tbl-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    thead tr {
+      background: #F0F4F8;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+      color: #4A5568;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(odd)  { background: #fff; }
+    tbody tr:nth-child(even) { background: #F7F8FA; }
+
+    tbody tr:hover { background: #EBF4FF; transition: background 0.15s; }
+
+    tbody td {
+      padding: 10px 14px;
+      color: #2C3E50;
+      border-bottom: 1px solid #F0F4F8;
+    }
+
+    td.removed { color: #E74C3C; font-weight: 600; }
+
+    /* ── Warning boxes ───────────────────────────────────────── */
+    .warn-box {
+      background: #FEF9E7;
+      border-left: 4px solid #F39C12;
+      padding: 12px 16px;
+      margin: 8px 0;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #7D6608;
+    }
+
+    /* ── Plot grids ──────────────────────────────────────────── */
+    .plot-grid-2x2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .plot-grid-2x2 { grid-template-columns: 1fr; }
+    }
+
+    .plot-box {
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid #E8ECF0;
+      padding: 12px;
+      min-height: 320px;
+    }
+
+    .plot-full {
+      min-height: 360px;
+    }
+
+    /* ── Reproducibility / collapsible ───────────────────────── */
+    .repro-toggle-btn {
+      background: none;
+      border: 1px solid #CBD5E0;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #4A5568;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .repro-toggle-btn:hover {
+      background: #EBF4FF;
+      border-color: #4A90D9;
+      color: #4A90D9;
+    }
+
+    #repro-details {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, margin-top 0.35s ease;
+      margin-top: 0;
+    }
+
+    .repro-hint {
+      font-size: 0.9rem;
+      color: #7F8C8D;
+      margin-bottom: 16px;
+      background: #F0F4F8;
+      border-radius: 6px;
+      padding: 10px 14px;
+    }
+
+    .repro-hint code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      background: #E8ECF0;
+      border-radius: 3px;
+      padding: 1px 5px;
+    }
+
+    pre {
+      background: #1E2A38;
+      color: #A8D5FF;
+      border-radius: 6px;
+      padding: 16px 18px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      margin-bottom: 20px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    /* ── Misc helpers ────────────────────────────────────────── */
+    .text-muted  { color: #95A5A6; }
+    .text-danger { color: #E74C3C; }
+    .text-right  { text-align: right; }
+    .mb-0        { margin-bottom: 0; }
+    .mt-16       { margin-top: 16px; }
+    .mt-24       { margin-top: 24px; }
+    .muted       { color: #95A5A6; font-style: italic; }
+
+    /* ── Info box ────────────────────────────────────────────── */
+    .info-box {
+      background: #EBF4FF;
+      border-left: 4px solid #4A90D9;
+      padding: 12px 16px;
+      margin: 8px 0 16px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #2C3E50;
+    }
+
+    /* ── Plot container ──────────────────────────────────────── */
+    .plot-container {
+      background: #fff;
+      border-radius: 6px;
+      border: 1px solid #E8ECF0;
+      padding: 12px;
+    }
+
+    /* ── Interactive threshold explorer ─────────────────────── */
+    .explorer-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid #F0F4F8;
+      flex-wrap: wrap;
+    }
+
+    .explorer-row label {
+      min-width: 220px;
+      font-weight: 600;
+      color: #4A5568;
+      font-size: 0.9rem;
+    }
+
+    .explorer-row input[type="range"] {
+      flex: 1;
+      min-width: 200px;
+      accent-color: #4A90D9;
+    }
+
+    .threshold-count {
+      min-width: 260px;
+      font-size: 0.88rem;
+      color: #E74C3C;
+      font-weight: 600;
+    }
+
+    .explorer-total {
+      margin-top: 20px;
+      padding: 14px 18px;
+      background: #F0F4F8;
+      border-radius: 6px;
+      font-size: 1rem;
+      color: #2C3E50;
+    }
+
+    .cli-command {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: #1E2A38;
+      color: #A8D5FF;
+      border-radius: 6px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 24px;
+    }
+
+    .btn-copy {
+      margin-top: 16px;
+      background: #4A90D9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-copy:hover { background: #3579c0; }
+
+    /* ── Sortable table headers ──────────────────────────────── */
+    thead th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    thead th.sortable:hover {
+      background: #E2E8F0;
+      color: #4A90D9;
+    }
+
+    .btn-download-csv {
+      background: none;
+      border: 1px solid #CBD5E0;
+      border-radius: 6px;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4A5568;
+      cursor: pointer;
+      margin-bottom: 14px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-download-csv:hover {
+      background: #EBF4FF;
+      border-color: #4A90D9;
+      color: #4A90D9;
+    }
+
+    /* ── Methods box ─────────────────────────────────────────── */
+    .methods-box {
+      background: #F8F9FA;
+      border: 1px solid #DEE2E6;
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: #2C3E50;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+{% if dry_run %}
+<div style="background:#FFF3CD;border:2px solid #FFC107;color:#856404;text-align:center;padding:16px 24px;font-size:1.1em;font-weight:bold;position:sticky;top:0;z-index:1000;">
+  &#9888;&#65039; DRY RUN — PREVIEW ONLY — No cells were removed and no output file was written
+</div>
+{% endif %}
+
+<div class="page-top-border"></div>
+
+{% if status == "INCOMPLETE" %}
+<div style="background:#FFF3CD;border-bottom:3px solid #F59E0B;color:#92400E;text-align:center;padding:14px 24px;font-size:1.05em;font-weight:bold;">
+  &#9888; INCOMPLETE — Doublet detection failed. Results require manual doublet inspection before use.
+</div>
+{% elif status == "FAIL" %}
+<div style="background:#FEE2E2;border-bottom:3px solid #DC2626;color:#991B1B;text-align:center;padding:14px 24px;font-size:1.05em;font-weight:bold;">
+  &#10060; FAIL — This run did not pass quality checks. Review warnings below before proceeding.
+</div>
+{% elif status == "PASS" %}
+<div style="background:#D1FAE5;border-bottom:3px solid #10B981;color:#065F46;text-align:center;padding:14px 24px;font-size:1.05em;font-weight:bold;">
+  &#10003; PASS — QC completed successfully.
+</div>
+{% endif %}
+
+<div class="page-wrapper">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 1 — Header
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card mb-0" style="margin-bottom: 0; border-radius: 8px 8px 0 0; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+    <div class="header-grid">
+
+      <!-- Left: brand -->
+      <div class="header-brand">
+        <div class="brand-name">AnnQC</div>
+        <div class="brand-version">v{{ version }}</div>
+      </div>
+
+      <!-- Center: title -->
+      <div class="header-center">
+        <h1>{{ title }}</h1>
+        {% if author %}
+        <div class="author">{{ author }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Right: meta -->
+      <div class="header-meta">
+        <div class="meta-label">Run Date</div>
+        <div>{{ run_date }}</div>
+        <div style="margin-top: 6px;" class="meta-label">Input File</div>
+        <div style="word-break: break-all; max-width: 220px; margin-left: auto;">{{ input_file }}</div>
+      </div>
+
+    </div>
+  </div>
+  <div class="header-separator"></div>
+
+  {% if doublet_status == "SKIPPED" %}
+  <div style="background:#FFF3CD;border:1px solid #F59E0B;color:#92400E;padding:12px 20px;margin-bottom:16px;border-radius:6px;font-size:0.95rem;">
+    &#9888; <strong>Doublet detection was intentionally skipped.</strong>
+    QC is incomplete with respect to multiplets.
+    Results may contain doublets that could affect downstream clustering and differential expression.
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 2 — Executive Summary
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="stat-grid" style="margin-bottom: 24px;">
+
+    <div class="stat-card">
+      <div class="stat-value">{{ "{:,}".format(cell_counts.input) }}</div>
+      <div class="stat-label">Input Cells</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-value">{{ "{:,}".format(cell_counts.output) }}</div>
+      <div class="stat-label">Output Cells</div>
+    </div>
+
+    <div class="stat-card">
+      {% if cell_counts.input > 0 %}
+        {% set pct = (cell_counts.output / cell_counts.input * 100) %}
+        <div class="stat-value">{{ "%.1f" | format(pct) }}%</div>
+      {% else %}
+        <div class="stat-value text-muted" style="font-size:1.8rem;">N/A</div>
+      {% endif %}
+      <div class="stat-label">Cells Retained</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-value" style="font-size: 1.6rem; padding-top: 8px;">
+        {% if status == "PASS" %}
+          <span class="badge badge-pass">PASS</span>
+        {% elif status == "FAIL" %}
+          <span class="badge badge-fail">FAIL</span>
+        {% else %}
+          <span class="badge badge-warn">{{ status }}</span>
+        {% endif %}
+      </div>
+      <div class="stat-label">Overall Status</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-value" style="font-size: 1.1rem;">
+        {% if threshold_method == "auto_mad" %}
+          MAD-based
+        {% else %}
+          Manual
+        {% endif %}
+      </div>
+      <div class="stat-label">Threshold Method</div>
+    </div>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 3 — Per-Sample QC Table
+       ═══════════════════════════════════════════════════════════ -->
+  {% if per_sample %}
+  <div class="card">
+    <div class="section-title">Per-Sample QC Summary</div>
+
+    <button class="btn-download-csv" onclick="downloadCSV()">&#11015; Download CSV</button>
+
+    <div class="tbl-wrap">
+      <table id="per-sample-table" data-sort-col="" data-sort-dir="asc">
+        <thead>
+          <tr>
+            <th class="sortable" onclick="sortTable(0)">Sample</th>
+            <th class="sortable text-right" onclick="sortTable(1)">Input Cells</th>
+            <th class="sortable text-right" onclick="sortTable(2)">Output Cells</th>
+            <th class="sortable text-right" onclick="sortTable(3)">Median Genes</th>
+            <th class="sortable text-right" onclick="sortTable(4)">Mito %</th>
+            <th class="sortable text-right" onclick="sortTable(5)">Doublet %</th>
+            <th class="sortable" onclick="sortTable(6)">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for name, s in per_sample.items() %}
+          <tr>
+            <td><strong>{{ name }}</strong></td>
+            <td class="text-right">{{ "{:,}".format(s.input) }}</td>
+            <td class="text-right">{{ "{:,}".format(s.output) }}</td>
+            <td class="text-right">
+              {{ "%.0f" | format(s.median_genes) if s.median_genes is not none else "N/A" }}
+            </td>
+            <td class="text-right">
+              {{ "%.1f" | format(s.median_mito_pct) if s.median_mito_pct is not none else "N/A" }}
+            </td>
+            <td class="text-right">
+              {{ "%.1f" | format(s.doublet_pct) if s.doublet_pct is not none else "N/A" }}
+            </td>
+            <td>
+              {% if s.status == "PASS" %}
+                <span class="badge badge-pass">PASS</span>
+              {% elif s.status == "FAIL" %}
+                <span class="badge badge-fail">FAIL</span>
+              {% else %}
+                <span class="badge badge-warn">{{ s.status if s.status else "WARN" }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if plots.per_sample %}
+    <div class="plot-full mt-24" id="plot-per-sample"></div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var fig = {{ plots.per_sample }};
+      Plotly.newPlot('plot-per-sample', fig.data, fig.layout, {responsive: true});
+    });
+    </script>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 4 — QC Metric Distributions
+       ═══════════════════════════════════════════════════════════ -->
+  {% if plots.mito_violin or plots.genes_violin or plots.counts_violin or plots.ribo_violin %}
+  <div class="card">
+    <div class="section-title">QC Metric Distributions</div>
+    <p class="section-subtitle">Dashed lines show filtering thresholds</p>
+
+    <div class="plot-grid-2x2">
+
+      {% if plots.mito_violin %}
+      <div class="plot-box" id="plot-mito"></div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var fig = {{ plots.mito_violin }};
+        Plotly.newPlot('plot-mito', fig.data, fig.layout, {responsive: true});
+      });
+      </script>
+      {% endif %}
+
+      {% if plots.genes_violin %}
+      <div class="plot-box" id="plot-genes"></div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var fig = {{ plots.genes_violin }};
+        Plotly.newPlot('plot-genes', fig.data, fig.layout, {responsive: true});
+      });
+      </script>
+      {% endif %}
+
+      {% if plots.counts_violin %}
+      <div class="plot-box" id="plot-counts"></div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var fig = {{ plots.counts_violin }};
+        Plotly.newPlot('plot-counts', fig.data, fig.layout, {responsive: true});
+      });
+      </script>
+      {% endif %}
+
+      {% if plots.ribo_violin %}
+      <div class="plot-box" id="plot-ribo"></div>
+      <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var fig = {{ plots.ribo_violin }};
+        Plotly.newPlot('plot-ribo', fig.data, fig.layout, {responsive: true});
+      });
+      </script>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 4b — Before vs After Filtering
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="section-title">Before vs After Filtering</div>
+
+    {% if not dry_run %}
+    <div class="plot-grid-2x2">
+      {% for metric in ["pct_counts_mt", "n_genes_by_counts", "total_counts", "pct_counts_ribo"] %}
+        {% set plot_json = before_after_plots.get(metric) %}
+        {% if plot_json %}
+        <div class="plot-container" id="before-after-{{ metric }}"></div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var fig = {{ plot_json }};
+          Plotly.newPlot('before-after-{{ metric }}', fig.data, fig.layout, {responsive: true});
+        });
+        </script>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% if not (before_after_plots.get("pct_counts_mt") or before_after_plots.get("n_genes_by_counts") or before_after_plots.get("total_counts") or before_after_plots.get("pct_counts_ribo")) %}
+    <p class="muted">No before/after data available. Ensure raw_obs_metrics is populated by the pipeline.</p>
+    {% endif %}
+    {% else %}
+    <p class="muted">Before/after plots are not shown in dry run mode (no cells were removed).</p>
+    {% endif %}
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 4c — Interactive Threshold Explorer
+       ═══════════════════════════════════════════════════════════ -->
+  <script>
+  const _qcData = {{ qc_arrays | tojson }};
+  </script>
+
+  <div class="card" id="threshold-explorer">
+    <div class="section-title">Interactive Threshold Explorer</div>
+    <p style="color:#7F8C8D;margin-bottom:20px;">Adjust thresholds to see how many cells would be removed.</p>
+
+    <div class="explorer-row">
+      <label>Max Mitochondrial % &nbsp;<span id="mito-val">20</span>%</label>
+      <input type="range" id="mito-slider" min="1" max="50" step="0.5" value="20"
+             oninput="updateMitoThreshold(this.value)">
+      <span id="mito-count" class="threshold-count"></span>
+    </div>
+
+    <div class="explorer-row">
+      <label>Min Genes &nbsp;<span id="mingenes-val">200</span></label>
+      <input type="range" id="mingenes-slider" min="0" max="2000" step="50" value="200"
+             oninput="updateMinGenes(this.value)">
+      <span id="mingenes-count" class="threshold-count"></span>
+    </div>
+
+    <div class="explorer-row">
+      <label>Max Genes &nbsp;<span id="maxgenes-val">6000</span></label>
+      <input type="range" id="maxgenes-slider" min="1000" max="15000" step="100" value="6000"
+             oninput="updateMaxGenes(this.value)">
+      <span id="maxgenes-count" class="threshold-count"></span>
+    </div>
+
+    <div class="explorer-row">
+      <label>Min Total Counts &nbsp;<span id="mincounts-val">500</span></label>
+      <input type="range" id="mincounts-slider" min="0" max="5000" step="100" value="500"
+             oninput="updateMinCounts(this.value)">
+      <span id="mincounts-count" class="threshold-count"></span>
+    </div>
+
+    <div id="explorer-total" class="explorer-total"></div>
+
+    <button onclick="copyCommand()" class="btn-copy">&#128203; Copy CLI Command</button>
+    <div id="cli-command" class="cli-command"></div>
+  </div>
+
+  <script>
+  const _n_total = (_qcData.pct_counts_mt || []).length;
+
+  function countExceed(arr, threshold, direction) {
+    if (!arr || !arr.length) return 0;
+    if (direction === 'gt') return arr.filter(function(v) { return v > threshold; }).length;
+    return arr.filter(function(v) { return v < threshold; }).length;
+  }
+
+  function updateMitoThreshold(val) {
+    document.getElementById('mito-val').textContent = parseFloat(val).toFixed(1);
+    var n = countExceed(_qcData.pct_counts_mt, parseFloat(val), 'gt');
+    document.getElementById('mito-count').textContent =
+      '→ ' + n.toLocaleString() + ' cells removed (' + (_n_total > 0 ? (n/_n_total*100).toFixed(1) : '0.0') + '%)';
+    updateTotal();
+  }
+
+  function updateMinGenes(val) {
+    document.getElementById('mingenes-val').textContent = val;
+    var n = countExceed(_qcData.n_genes_by_counts, parseFloat(val), 'lt');
+    document.getElementById('mingenes-count').textContent =
+      '→ ' + n.toLocaleString() + ' cells removed (' + (_n_total > 0 ? (n/_n_total*100).toFixed(1) : '0.0') + '%)';
+    updateTotal();
+  }
+
+  function updateMaxGenes(val) {
+    document.getElementById('maxgenes-val').textContent = val;
+    var n = countExceed(_qcData.n_genes_by_counts, parseFloat(val), 'gt');
+    document.getElementById('maxgenes-count').textContent =
+      '→ ' + n.toLocaleString() + ' cells removed (' + (_n_total > 0 ? (n/_n_total*100).toFixed(1) : '0.0') + '%)';
+    updateTotal();
+  }
+
+  function updateMinCounts(val) {
+    document.getElementById('mincounts-val').textContent = val;
+    var n = countExceed(_qcData.total_counts, parseFloat(val), 'lt');
+    document.getElementById('mincounts-count').textContent =
+      '→ ' + n.toLocaleString() + ' cells removed (' + (_n_total > 0 ? (n/_n_total*100).toFixed(1) : '0.0') + '%)';
+    updateTotal();
+  }
+
+  function updateTotal() {
+    var mito = parseFloat(document.getElementById('mito-slider').value);
+    var minG = parseFloat(document.getElementById('mingenes-slider').value);
+    var maxG = parseFloat(document.getElementById('maxgenes-slider').value);
+    var minC = parseFloat(document.getElementById('mincounts-slider').value);
+
+    var n_fail = 0;
+    var mt = _qcData.pct_counts_mt || [];
+    var genes = _qcData.n_genes_by_counts || [];
+    var counts = _qcData.total_counts || [];
+    var n = _n_total;
+
+    for (var i = 0; i < n; i++) {
+      if ((mt[i] !== undefined && mt[i] > mito) ||
+          (genes[i] !== undefined && genes[i] < minG) ||
+          (genes[i] !== undefined && genes[i] > maxG) ||
+          (counts[i] !== undefined && counts[i] < minC)) {
+        n_fail++;
+      }
+    }
+
+    var n_keep = n - n_fail;
+    document.getElementById('explorer-total').innerHTML =
+      '<strong>Total with these thresholds: ' + n_fail.toLocaleString() + ' removed, ' +
+      n_keep.toLocaleString() + ' retained (' + (n > 0 ? (n_keep/n*100).toFixed(1) : '0.0') + '%)</strong>';
+
+    document.getElementById('cli-command').textContent =
+      'annqc run input.h5ad --output cleaned.h5ad --report report.html';
+  }
+
+  function copyCommand() {
+    var mito = parseFloat(document.getElementById('mito-slider').value).toFixed(1);
+    var minG = parseInt(document.getElementById('mingenes-slider').value);
+    var maxG = parseInt(document.getElementById('maxgenes-slider').value);
+    var minC = parseInt(document.getElementById('mincounts-slider').value);
+    var configCmd = '# Add to your config.yaml:\n# mito:\n#   max_pct: ' + mito +
+      '\n# cells:\n#   min_genes: ' + minG +
+      '\n#   max_genes: ' + maxG +
+      '\n#   min_counts: ' + minC;
+    navigator.clipboard.writeText(configCmd).then(function() {
+      document.getElementById('cli-command').textContent = 'Copied to clipboard!';
+      setTimeout(function() { updateTotal(); }, 2000);
+    });
+  }
+
+  window.addEventListener('load', function() {
+    if (_n_total > 0) {
+      updateMitoThreshold(document.getElementById('mito-slider').value);
+      updateMinGenes(document.getElementById('mingenes-slider').value);
+      updateMaxGenes(document.getElementById('maxgenes-slider').value);
+      updateMinCounts(document.getElementById('mincounts-slider').value);
+      updateTotal();
+    }
+  });
+  </script>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 4d — Why These Thresholds?
+       ═══════════════════════════════════════════════════════════ -->
+  {% if threshold_explanations %}
+  <div class="card">
+    <div class="section-title">Why These Thresholds?</div>
+    <p class="section-subtitle">Plain-English explanation of every filtering decision</p>
+
+    {% for metric, explanation in threshold_explanations.items() %}
+    <div style="margin-bottom: 20px;">
+      <div style="font-weight: 600; color: #2C3E50; margin-bottom: 6px;">
+        {{ {"pct_counts_mt": "Mitochondrial %", "n_genes_by_counts": "Gene Count",
+            "total_counts": "UMI Count", "pct_counts_ribo": "Ribosomal %",
+            "doublet": "Doublet Detection"}.get(metric, metric) }}
+      </div>
+
+      <div class="info-box">
+        &#x2139;&#xFE0F; {{ explanation | e }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 5 — Filtering Decisions
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="section-title">Filtering Decisions</div>
+
+    {% if threshold_method == "auto_mad" %}
+    <div class="info-box">
+      <strong>Auto-thresholds (MAD-based)</strong>: Thresholds were calculated automatically using the
+      Median Absolute Deviation (MAD) method. For each metric, the threshold = median &#177; 5&#215;MAD.
+      This adapts to your data distribution rather than using fixed cutoffs.
+    </div>
+    {% endif %}
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th class="text-right">Threshold</th>
+            <th class="text-right">Cells Before</th>
+            <th class="text-right">Cells Removed</th>
+            <th class="text-right">Cells After</th>
+            <th class="text-right">% Removed</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Mito Filter -->
+          {% set before = cell_counts.input %}
+          {% set after  = cell_counts.after_mito_filter %}
+          {% set removed = before - after %}
+          {% set pct_rem = (removed / before * 100) if before > 0 else 0 %}
+          <tr>
+            <td>Mitochondrial Filter</td>
+            <td class="text-right">
+              {% if thresholds.mito_max_pct is not none %}
+                &le; {{ thresholds.mito_max_pct }}%
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-right">{{ "{:,}".format(before) }}</td>
+            <td class="text-right removed">{{ "{:,}".format(removed) }}</td>
+            <td class="text-right">{{ "{:,}".format(after) }}</td>
+            <td class="text-right">{{ "%.1f" | format(pct_rem) }}%</td>
+          </tr>
+
+          <!-- Gene Filter -->
+          {% set before = cell_counts.after_mito_filter %}
+          {% set after  = cell_counts.after_gene_filter %}
+          {% set removed = before - after %}
+          {% set pct_rem = (removed / before * 100) if before > 0 else 0 %}
+          <tr>
+            <td>Gene Count Filter</td>
+            <td class="text-right">
+              {% if thresholds.min_genes is not none or thresholds.max_genes is not none %}
+                {% if thresholds.min_genes is not none %}{{ thresholds.min_genes }}{% else %}…{% endif %}
+                –
+                {% if thresholds.max_genes is not none %}{{ thresholds.max_genes }}{% else %}…{% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-right">{{ "{:,}".format(before) }}</td>
+            <td class="text-right removed">{{ "{:,}".format(removed) }}</td>
+            <td class="text-right">{{ "{:,}".format(after) }}</td>
+            <td class="text-right">{{ "%.1f" | format(pct_rem) }}%</td>
+          </tr>
+
+          <!-- Count Filter -->
+          {% set before = cell_counts.after_gene_filter %}
+          {% set after  = cell_counts.after_count_filter %}
+          {% set removed = before - after %}
+          {% set pct_rem = (removed / before * 100) if before > 0 else 0 %}
+          <tr>
+            <td>UMI Count Filter</td>
+            <td class="text-right">
+              {% if thresholds.min_counts is not none %}
+                &ge; {{ "{:,}".format(thresholds.min_counts) }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-right">{{ "{:,}".format(before) }}</td>
+            <td class="text-right removed">{{ "{:,}".format(removed) }}</td>
+            <td class="text-right">{{ "{:,}".format(after) }}</td>
+            <td class="text-right">{{ "%.1f" | format(pct_rem) }}%</td>
+          </tr>
+
+          <!-- Doublet Removal -->
+          {% set before = cell_counts.after_count_filter %}
+          {% set after  = cell_counts.after_doublet_filter %}
+          {% set removed = before - after %}
+          {% set pct_rem = (removed / before * 100) if before > 0 else 0 %}
+          <tr>
+            <td>Doublet Removal</td>
+            <td class="text-right">
+              {% if thresholds.doublet_threshold is not none %}
+                score &lt; {{ thresholds.doublet_threshold }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-right">{{ "{:,}".format(before) }}</td>
+            <td class="text-right removed">{{ "{:,}".format(removed) }}</td>
+            <td class="text-right">{{ "{:,}".format(after) }}</td>
+            <td class="text-right">{{ "%.1f" | format(pct_rem) }}%</td>
+          </tr>
+
+        </tbody>
+
+        <!-- Totals footer -->
+        {% set total_removed = cell_counts.input - cell_counts.output %}
+        {% set total_pct = (total_removed / cell_counts.input * 100) if cell_counts.input > 0 else 0 %}
+        <tfoot>
+          <tr style="background: #F0F4F8; font-weight: 700; border-top: 2px solid #CBD5E0;">
+            <td colspan="2" style="padding: 10px 14px; color: #4A5568; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px;">Total</td>
+            <td class="text-right" style="padding: 10px 14px;">{{ "{:,}".format(cell_counts.input) }}</td>
+            <td class="text-right removed" style="padding: 10px 14px;">{{ "{:,}".format(total_removed) }}</td>
+            <td class="text-right" style="padding: 10px 14px;">{{ "{:,}".format(cell_counts.output) }}</td>
+            <td class="text-right" style="padding: 10px 14px;">{{ "%.1f" | format(total_pct) }}%</td>
+          </tr>
+        </tfoot>
+
+      </table>
+    </div>
+
+    {% if plots.waterfall %}
+    <div class="plot-full mt-24" id="plot-waterfall"></div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var fig = {{ plots.waterfall }};
+      Plotly.newPlot('plot-waterfall', fig.data, fig.layout, {responsive: true});
+    });
+    </script>
+    {% endif %}
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 6 — Doublet Detection
+       ═══════════════════════════════════════════════════════════ -->
+  {% if plots.doublet_scores %}
+  <div class="card">
+    <div class="section-title">Doublet Detection</div>
+
+    <div style="display: flex; align-items: center; gap: 24px; margin-bottom: 16px; flex-wrap: wrap;">
+      <div>
+        <span style="font-size: 0.78rem; font-weight: 600; color: #95A5A6; text-transform: uppercase; letter-spacing: 0.5px;">Doublet Threshold</span><br>
+        <span style="font-size: 1.2rem; font-weight: 700; color: #2C3E50;">
+          {% if thresholds.doublet_threshold is not none %}
+            {{ thresholds.doublet_threshold }}
+          {% else %}
+            <span class="text-muted">N/A</span>
+          {% endif %}
+        </span>
+      </div>
+      <div>
+        <span style="font-size: 0.78rem; font-weight: 600; color: #95A5A6; text-transform: uppercase; letter-spacing: 0.5px;">Doublets Removed</span><br>
+        {% set doublets_removed = cell_counts.after_count_filter - cell_counts.after_doublet_filter %}
+        <span style="font-size: 1.2rem; font-weight: 700; color: #E74C3C;">
+          {{ "{:,}".format(doublets_removed) }}
+        </span>
+      </div>
+      {% if cell_counts.after_count_filter > 0 %}
+      <div>
+        <span style="font-size: 0.78rem; font-weight: 600; color: #95A5A6; text-transform: uppercase; letter-spacing: 0.5px;">Doublet Rate</span><br>
+        <span style="font-size: 1.2rem; font-weight: 700; color: #2C3E50;">
+          {{ "%.1f" | format(doublets_removed / cell_counts.after_count_filter * 100) }}%
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="plot-full" id="plot-doublet-scores"></div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var fig = {{ plots.doublet_scores }};
+      Plotly.newPlot('plot-doublet-scores', fig.data, fig.layout, {responsive: true});
+    });
+    </script>
+
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 7 — Quality Warnings
+       ═══════════════════════════════════════════════════════════ -->
+  {% if warnings %}
+  <div class="card">
+    <div class="section-title">Quality Warnings</div>
+    {% for w in warnings %}
+    <div class="warn-box">&#9888;&#65039; {{ w }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 8 — Methods Text
+       ═══════════════════════════════════════════════════════════ -->
+  {% if methods_text_full %}
+  <div class="card">
+    <div class="section-title">Methods Text</div>
+    <p class="section-subtitle">Ready-to-paste text for the Methods section of your manuscript</p>
+
+    <div style="margin-bottom: 20px;">
+      <div style="font-weight: 600; color: #4A5568; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Full paragraph</div>
+      <div class="methods-box" id="methods-full-text">{{ methods_text_full | e }}</div>
+      <button class="btn-copy" style="margin-top: 10px;" onclick="copyText('methods-full-text', this)">&#128203; Copy</button>
+    </div>
+
+    {% if methods_text_short %}
+    <div>
+      <div style="font-weight: 600; color: #4A5568; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Short version (for abstracts)</div>
+      <div class="methods-box" id="methods-short-text">{{ methods_text_short | e }}</div>
+      <button class="btn-copy" style="margin-top: 10px;" onclick="copyText('methods-short-text', this)">&#128203; Copy</button>
+    </div>
+    {% endif %}
+
+    <p style="margin-top: 16px; font-size: 0.8rem; color: #95A5A6;">
+      Scrublet citation: Wolock SL, Lopez R, Klein AM. Scrublet: Computational Identification of Cell Doublets in Single-Cell Transcriptomic Data. <em>Cell Syst.</em> 2019;8(4):281–291.
+    </p>
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 9 — Reproducibility Footer
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <button id="repro-btn" class="repro-toggle-btn" onclick="toggleDetails()">
+      &#9658; Show Reproducibility Details
+    </button>
+
+    <div id="repro-details">
+
+      <div class="repro-hint">
+        To reproduce this run: save this config and run with
+        <code>--seed {{ seed }}</code>
+      </div>
+
+      <div class="repro-hint" style="margin-top: 8px;">
+        Raw pre-normalization counts are preserved in <code>adata.layers['counts']</code>
+      </div>
+
+      <div class="repro-hint" style="margin-top: 8px;">
+        Note: AnnQC does not perform ambient RNA correction. Apply CellBender or SoupX upstream if required.
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <div class="section-title" style="font-size: 1rem; margin-bottom: 12px;">YAML Configuration</div>
+        <pre><code>{{ config_yaml }}</code></pre>
+      </div>
+
+      {% if software_versions %}
+      <div>
+        <div class="section-title" style="font-size: 1rem; margin-bottom: 12px;">Software Versions</div>
+        <div class="tbl-wrap">
+          <table style="max-width: 480px;">
+            <thead>
+              <tr>
+                <th>Package</th>
+                <th>Version</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pkg, ver in software_versions.items() %}
+              <tr>
+                <td><code style="background: #F0F4F8; border-radius: 3px; padding: 1px 5px; font-family: 'SFMono-Regular', Consolas, monospace;">{{ pkg }}</code></td>
+                <td>{{ ver }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div><!-- /.page-wrapper -->
+
+<script>
+function toggleDetails() {
+  var el  = document.getElementById('repro-details');
+  var btn = document.getElementById('repro-btn');
+  if (el.style.maxHeight && el.style.maxHeight !== '0px') {
+    el.style.maxHeight = '0px';
+    el.style.marginTop = '0';
+    btn.innerHTML = '&#9658; Show Reproducibility Details';
+  } else {
+    el.style.maxHeight = el.scrollHeight + 'px';
+    el.style.marginTop = '20px';
+    btn.innerHTML = '&#9660; Hide Details';
+  }
+}
+
+function copyText(elementId, btn) {
+  var text = document.getElementById(elementId).textContent.trim();
+  navigator.clipboard.writeText(text).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = orig; }, 2000);
+  });
+}
+
+function sortTable(n) {
+  var table = document.querySelector('#per-sample-table');
+  if (!table) return;
+  var rows = Array.from(table.querySelectorAll('tbody tr'));
+  var asc = table.dataset.sortCol == n && table.dataset.sortDir == 'asc';
+  rows.sort(function(a, b) {
+    var aVal = a.cells[n].textContent.trim();
+    var bVal = b.cells[n].textContent.trim();
+    var aNum = parseFloat(aVal.replace(/,/g, ''));
+    var bNum = parseFloat(bVal.replace(/,/g, ''));
+    if (!isNaN(aNum) && !isNaN(bNum)) return asc ? bNum - aNum : aNum - bNum;
+    return asc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+  });
+  var tbody = table.querySelector('tbody');
+  rows.forEach(function(r) { tbody.appendChild(r); });
+  table.dataset.sortCol = n;
+  table.dataset.sortDir = asc ? 'desc' : 'asc';
+}
+
+function downloadCSV() {
+  var table = document.querySelector('#per-sample-table');
+  if (!table) return;
+  var rows = Array.from(table.querySelectorAll('tr'));
+  var csv = rows.map(function(r) {
+    return Array.from(r.querySelectorAll('th,td'))
+      .map(function(c) { return '"' + c.textContent.trim().replace(/"/g, '""') + '"'; })
+      .join(',');
+  }).join('\n');
+  var blob = new Blob([csv], {type: 'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'annqc_per_sample.csv';
+  a.click();
+}
+</script>
+
+</body>
+</html>

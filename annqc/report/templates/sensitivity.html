@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AnnQC Sensitivity Analysis</title>
+  <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #F7F8FA;
+      color: #2C3E50;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .page-top-border { height: 4px; background: #4A90D9; width: 100%; }
+    .page-wrapper { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #2C3E50;
+      border-bottom: 2px solid #E8ECF0;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+    .section-subtitle {
+      font-size: 0.85rem;
+      color: #7F8C8D;
+      margin-top: -10px;
+      margin-bottom: 16px;
+    }
+    .header-brand { font-size: 1.6rem; font-weight: 800; color: #4A90D9; letter-spacing: -0.5px; }
+    .header-sub { font-size: 0.85rem; color: #7F8C8D; margin-top: 2px; }
+    .header-sep { height: 1px; background: linear-gradient(to right, #4A90D9, #E8ECF0); margin: 16px 0 24px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    thead tr { background: #F0F4F8; }
+    thead th { text-align: left; padding: 10px 14px; font-weight: 600; color: #4A5568;
+               font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.4px; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid #F0F4F8; vertical-align: top; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .badge-warn { background: #FEF3C7; color: #92400E; border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; }
+    .badge-ok   { background: #D1FAE5; color: #065F46; border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; }
+    .badge-high { background: #FEE2E2; color: #991B1B; border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; }
+
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 700px) { .chart-grid { grid-template-columns: 1fr; } }
+    .chart-box { background: #F8FAFC; border-radius: 6px; padding: 12px; }
+
+    .impact-block { margin-bottom: 16px; padding: 14px 16px; background: #F8FAFC;
+                    border-radius: 6px; border-left: 3px solid #4A90D9; }
+    .impact-title { font-weight: 600; margin-bottom: 6px; color: #2C3E50; }
+    .impact-row   { font-size: 0.85rem; color: #4A5568; margin-bottom: 2px; }
+    .impact-warn  { color: #B45309; font-weight: 600; }
+
+    .rec-block { margin-bottom: 16px; padding: 14px 16px; background: #EFF6FF;
+                 border-radius: 6px; border-left: 3px solid #4A90D9; }
+    .rec-title { font-weight: 600; color: #1E40AF; margin-bottom: 6px; }
+    .rec-text  { font-size: 0.88rem; color: #374151; }
+
+    .legend-strip { display: flex; gap: 16px; font-size: 0.8rem; color: #7F8C8D;
+                    margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 2px; display: inline-block; margin-right: 4px; }
+  </style>
+</head>
+<body>
+<div class="page-top-border"></div>
+<div class="page-wrapper">
+
+  <div class="header-brand">AnnQC</div>
+  <div class="header-sub">Threshold Sensitivity Analysis &mdash; {{ n_input_fmt }} input cells</div>
+  <div class="header-sep"></div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 1 — Executive Summary
+       ═══════════════════════════════════════════ -->
+  <div class="card">
+    <div class="section-title">Executive Summary</div>
+    <p class="section-subtitle">MAD-suggested thresholds and cells removed at each suggestion</p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr>
+        <th>Metric</th>
+        <th>MAD-Suggested</th>
+        <th>Reason</th>
+        <th>Cells Removed</th>
+        <th>% Removed</th>
+      </tr></thead>
+      <tbody>
+      {% for metric_key in ["mito", "min_genes", "max_genes", "min_counts"] %}
+      {% set m = results[metric_key] %}
+      {% set label = metric_labels.get(metric_key, metric_key) %}
+      {% if m.mad_suggested is not none %}
+        {% set rec = m.mad_suggested %}
+        {% set rec_cells = namespace(v=0, pct=0.0) %}
+        {% for i in range(m.thresholds_tested | length) %}
+          {% set diff = m.thresholds_tested[i] - rec %}
+          {% if diff < 0 %}{% set diff = 0 - diff %}{% endif %}
+          {% if diff < 0.5 %}
+            {% set rec_cells.v   = m.cells_removed[i] %}
+            {% set rec_cells.pct = m.pct_removed[i] %}
+          {% endif %}
+        {% endfor %}
+        <tr>
+          <td>{{ label }}</td>
+          <td><strong>{{ "%.3g" | format(rec) }}</strong></td>
+          <td style="color:#7F8C8D;font-size:0.82rem;">{{ m.mad_suggested_reason }}</td>
+          <td>{{ rec_cells.v }}</td>
+          <td>
+            {% if rec_cells.pct > 20 %}
+            <span class="badge-high">{{ "%.1f" | format(rec_cells.pct) }}% &#9888;</span>
+            {% elif rec_cells.pct > 10 %}
+            <span class="badge-warn">{{ "%.1f" | format(rec_cells.pct) }}%</span>
+            {% else %}
+            <span class="badge-ok">{{ "%.1f" | format(rec_cells.pct) }}%</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td>{{ label }}</td>
+          <td colspan="4" style="color:#95A5A6;font-style:italic;">Not available</td>
+        </tr>
+      {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 2 — Sensitivity Curves
+       ═══════════════════════════════════════════ -->
+  <div class="card">
+    <div class="section-title">Sensitivity Curves</div>
+    <p class="section-subtitle">% cells removed vs threshold value. Dashed line = MAD-suggested.
+      Shading: green (&le;10% removed), yellow (10&ndash;20%), red (&gt;20%).</p>
+    <div class="legend-strip">
+      <span><span class="legend-dot" style="background:rgba(39,174,96,0.5)"></span>Conservative (&le;10%)</span>
+      <span><span class="legend-dot" style="background:rgba(243,156,18,0.5)"></span>Moderate (10&ndash;20%)</span>
+      <span><span class="legend-dot" style="background:rgba(231,76,60,0.5)"></span>Aggressive (&gt;20%)</span>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box"><div id="chart-mito"></div></div>
+      <div class="chart-box"><div id="chart-min-genes"></div></div>
+      <div class="chart-box"><div id="chart-max-genes"></div></div>
+      <div class="chart-box"><div id="chart-min-counts"></div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 2b — Profile Comparison (optional)
+       ═══════════════════════════════════════════ -->
+  {% if profiles_data %}
+  <div class="card">
+    <div class="section-title">Profile Comparison</div>
+    <p class="section-subtitle">Three combined MAD-based profiles: strict (3×MAD), standard (5×MAD), permissive (7×MAD)</p>
+    <div style="margin-bottom: 16px; padding: 12px 16px; background: #FFFBEB; border-left: 3px solid #F59E0B; border-radius: 6px; font-size: 0.88rem; color: #374151;">
+      &#9888; MAD-based profiles are computed from your data distribution. They are not biologically validated thresholds.
+      A standard (5-MAD) profile may still be too strict or too permissive depending on tissue type, protocol, and biological context.
+    </div>
+    <div style="overflow-x:auto; margin-bottom: 16px;">
+    <table>
+      <thead><tr>
+        <th>Profile</th>
+        <th>Mito threshold</th>
+        <th>Min genes</th>
+        <th>Max genes</th>
+        <th>Cells retained</th>
+        <th>% retained</th>
+      </tr></thead>
+      <tbody>
+      {% for row in profiles_data %}
+      {% if not row.error is defined %}
+      <tr>
+        <td><strong>{{ row.profile | capitalize }}</strong></td>
+        <td>{{ "%.2f" | format(row.mito_max_pct) if row.mito_max_pct is not none else "—" }}%</td>
+        <td>{{ row.min_genes if row.min_genes is not none else "—" }}</td>
+        <td>{{ row.max_genes if row.max_genes is not none else "—" }}</td>
+        <td>{{ row.n_output }}</td>
+        <td>
+          {% if row.pct_retained >= 90 %}
+          <span class="badge-ok">{{ "%.1f" | format(row.pct_retained) }}%</span>
+          {% elif row.pct_retained >= 80 %}
+          <span class="badge-warn">{{ "%.1f" | format(row.pct_retained) }}%</span>
+          {% else %}
+          <span class="badge-high">{{ "%.1f" | format(row.pct_retained) }}%</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% if profiles_summary %}
+    <div class="rec-block" style="margin-bottom: 0;">
+      <div class="rec-text">{{ profiles_summary }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 3 — Cluster Impact
+       ═══════════════════════════════════════════ -->
+  {% set has_impact = false %}
+  {% for mk in ["mito", "min_genes", "max_genes", "min_counts"] %}
+    {% if results[mk].cluster_impact %}{% set has_impact = true %}{% endif %}
+  {% endfor %}
+  {% if has_impact %}
+  <div class="card">
+    <div class="section-title">Cluster Impact</div>
+    <p class="section-subtitle">Clusters losing &gt;10% of cells at each tested threshold vs the MAD-suggested value.</p>
+    <div class="info-box" style="margin-bottom: 16px; padding: 12px 16px; background: #EFF6FF; border-left: 3px solid #4A90D9; border-radius: 6px; font-size: 0.88rem; color: #374151;">
+      &#x2139;&#xFE0F; Cluster impact analysis is exploratory and diagnostic.
+      Clusters shown here are computed from the current QC configuration and should not be interpreted as ground truth.
+      For a more robust analysis, provide your own cluster labels using <code>--cluster-labels</code>.
+    </div>
+    {% for metric_key in ["mito", "min_genes", "max_genes", "min_counts"] %}
+    {% set m = results[metric_key] %}
+    {% set label = metric_labels.get(metric_key, metric_key) %}
+    {% if m.cluster_impact and m.mad_suggested is not none %}
+      {% for thr_key, cluster_fracs in m.cluster_impact.items() %}
+        {% set thr_val = thr_key | replace("threshold_", "") | float %}
+        {% set diff = thr_val - m.mad_suggested %}
+        {% if diff < 0 %}{% set diff = 0 - diff %}{% endif %}
+        {% if diff > 0.5 %}
+        <div class="impact-block">
+          <div class="impact-title">{{ label }}: threshold {{ thr_val }} (MAD-suggested: {{ "%.3g" | format(m.mad_suggested) }})</div>
+          {% set any_flagged = namespace(v=false) %}
+          {% for cluster, frac in cluster_fracs.items() %}
+            {% if frac > 0.10 %}
+            <div class="impact-row impact-warn">&rarr; Cluster {{ cluster }}: loses {{ "%.0f" | format(frac * 100) }}% of cells &#9888;</div>
+            {% set any_flagged.v = true %}
+            {% endif %}
+          {% endfor %}
+          {% if not any_flagged.v %}
+          <div class="impact-row" style="color:#7F8C8D;">No cluster loses &gt;10% of its cells at this threshold.</div>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 4 — Recommendation Summary
+       ═══════════════════════════════════════════ -->
+  <div class="card">
+    <div class="section-title">Recommendation Summary</div>
+    {% for metric_key, summary in rec_summaries.items() %}
+    <div class="rec-block">
+      <div class="rec-title">{{ summary.label }}</div>
+      <div class="rec-text">
+        Based on sensitivity analysis, the MAD-suggested value for {{ summary.label.split("(")[0].strip() }} is {{ "%.3g" | format(summary.rec) }}
+        ({{ summary.reason }}).
+        {% if summary.disproportionate %}
+        Stricter thresholds would disproportionately affect {{ summary.disproportionate | join(", ") }},
+        suggesting these cells may have legitimate biological signal rather than being low quality.
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div><!-- end page-wrapper -->
+
+<script>
+var _charts = {
+  "chart-mito":       {{ mito_chart | safe }},
+  "chart-min-genes":  {{ min_genes_chart | safe }},
+  "chart-max-genes":  {{ max_genes_chart | safe }},
+  "chart-min-counts": {{ min_counts_chart | safe }}
+};
+Object.keys(_charts).forEach(function(id) {
+  var spec = _charts[id];
+  Plotly.newPlot(id, spec.data, spec.layout, {responsive: true, displayModeBar: false});
+});
+</script>
+</body>
+</html>

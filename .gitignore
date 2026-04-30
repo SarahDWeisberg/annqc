@@ -17,3 +17,8 @@ validation_comparison.png
 CLAUDE.md
 *.h5ad
 report*.html
+.html
+/report.html
+/report_*.html
+/sensitivity.html
+/sensitivity_profiles.html
