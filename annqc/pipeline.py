@@ -83,6 +83,13 @@ def run(
 
     logger.info("Input: %d cells x %d genes", adata.n_obs, adata.n_vars)
 
+    # Capture raw per-sample counts before any filtering
+    raw_per_sample_counts = {}
+    if sample_key and sample_key in adata.obs.columns:
+        raw_per_sample_counts = adata.obs[sample_key].value_counts().to_dict()
+        logger.info(f"Per-sample mode: {len(raw_per_sample_counts)} samples found in '{sample_key}'")
+        logger.info(f"Sample counts: {raw_per_sample_counts}")
+
     # --- Step 2: Resolve config ---
     if config is None:
         cfg = get_default_config()
@@ -238,7 +245,7 @@ def run(
     # --- Step 12: Per-sample stats ---
     if sample_key is not None:
         if sample_key in adata.obs.columns:
-            record["per_sample"] = _compute_per_sample(adata, sample_key, cfg)
+            record["per_sample"] = _compute_per_sample(adata, sample_key, cfg, raw_per_sample_counts)
         else:
             logger.warning(
                 "sample_key '%s' not found in adata.obs — skipping per-sample mode",
@@ -271,7 +278,7 @@ def run(
     return adata
 
 
-def _compute_per_sample(adata, sample_key: str, cfg: dict) -> dict:
+def _compute_per_sample(adata, sample_key: str, cfg: dict, raw_per_sample_counts: dict) -> dict:
     """Compute per-sample QC statistics from the cleaned AnnData."""
     per_sample = {}
     mito_threshold = cfg["mito"].get("max_pct", 20)
@@ -279,41 +286,40 @@ def _compute_per_sample(adata, sample_key: str, cfg: dict) -> dict:
     min_cells_pass_per_sample = thr_cfg.get("min_cells_pass_per_sample", 200)
     min_cells_warn_per_sample = thr_cfg.get("min_cells_warn_per_sample", 500)
     for sample in adata.obs[sample_key].unique():
-        mask = adata.obs[sample_key] == sample
-        sub = adata[mask]
-        n_out = int(mask.sum())
+        input_cells = raw_per_sample_counts.get(sample, 0)
+        output_cells = int((adata.obs[sample_key] == sample).sum())
 
         median_genes = (
-            float(np.median(sub.obs["n_genes_by_counts"].values))
-            if "n_genes_by_counts" in sub.obs.columns
+            float(np.median(adata.obs.loc[adata.obs[sample_key] == sample, "n_genes_by_counts"].values))
+            if "n_genes_by_counts" in adata.obs.columns
             else None
         )
         median_mito = (
-            float(np.median(sub.obs["pct_counts_mt"].values))
-            if "pct_counts_mt" in sub.obs.columns
+            float(adata.obs.loc[adata.obs[sample_key] == sample, "pct_counts_mt"].median())
+            if "pct_counts_mt" in adata.obs.columns
             else None
         )
-        doublet_pct = (
-            100.0 * float(sub.obs["annqc_is_doublet"].sum()) / max(n_out, 1)
-            if "annqc_is_doublet" in sub.obs.columns
+        doublet_rate = (
+            float(adata.obs.loc[adata.obs[sample_key] == sample, "annqc_is_doublet"].mean())
+            if "annqc_is_doublet" in adata.obs.columns
             else None
         )
 
-        if n_out < min_cells_pass_per_sample:
+        if output_cells < min_cells_pass_per_sample:
             sample_status = "FAIL"
         elif median_mito is not None and median_mito > mito_threshold * 0.85:
             sample_status = "WARN"
-        elif n_out < min_cells_warn_per_sample:
+        elif output_cells < min_cells_warn_per_sample:
             sample_status = "WARN"
         else:
             sample_status = "PASS"
 
         per_sample[str(sample)] = {
-            "input": n_out,
-            "output": n_out,
+            "input_cells": input_cells,
+            "output_cells": output_cells,
             "median_genes": median_genes,
-            "median_mito_pct": median_mito,
-            "doublet_pct": doublet_pct,
+            "median_mito": median_mito,
+            "doublet_rate": doublet_rate,
             "status": sample_status,
         }
     return per_sample
@@ -368,7 +374,7 @@ def _generate_warnings(record: dict, cfg: dict) -> None:
 
     # Sample-level warnings
     for sample, stats in record.get("per_sample", {}).items():
-        mito_pct = stats.get("median_mito_pct")
+        mito_pct = stats.get("median_mito")
         if mito_pct is not None and mito_pct > mito_threshold * 0.85:
             warnings.append(
                 f"⚠️ Sample '{sample}': median mito% is {mito_pct:.1f} "
