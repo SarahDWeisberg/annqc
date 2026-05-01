@@ -584,16 +584,16 @@
           {% for name, s in per_sample.items() %}
           <tr>
             <td><strong>{{ name }}</strong></td>
-            <td class="text-right">{{ "{:,}".format(s.input) }}</td>
-            <td class="text-right">{{ "{:,}".format(s.output) }}</td>
+            <td class="text-right">{{ "{:,}".format(s.input_cells) }}</td>
+            <td class="text-right">{{ "{:,}".format(s.output_cells) }}</td>
             <td class="text-right">
               {{ "%.0f" | format(s.median_genes) if s.median_genes is not none else "N/A" }}
             </td>
             <td class="text-right">
-              {{ "%.1f" | format(s.median_mito_pct) if s.median_mito_pct is not none else "N/A" }}
+              {{ "%.1f" | format(s.median_mito) if s.median_mito is not none else "N/A" }}
             </td>
             <td class="text-right">
-              {{ "%.1f" | format(s.doublet_pct) if s.doublet_pct is not none else "N/A" }}
+              {{ "%.1f" | format(s.doublet_rate * 100) if s.doublet_rate is not none else "N/A" }}
             </td>
             <td>
               {% if s.status == "PASS" %}
