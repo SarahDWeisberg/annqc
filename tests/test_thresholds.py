@@ -95,29 +95,34 @@ def test_suggest_thresholds_lower_bounds_nonnegative(adata_with_qc):
                 )
 
 
-def test_suggest_thresholds_mad_formula(adata_with_qc):
-    """Verify the MAD threshold formula on a known-value column.
+def test_suggest_thresholds_formula(adata_with_qc):
+    """Verify threshold formulas for n_genes_by_counts.
 
-    For n_genes_by_counts:
-        lower = max(0, median - 5 * MAD)
-        upper = median + 5 * MAD
+    Upper bound: median + 5 * MAD.
+    Lower bound (standard): p5 percentile of the distribution.
     """
     vals = adata_with_qc.obs["n_genes_by_counts"].values.astype(float)
     median = float(np.median(vals))
     mad = float(np.median(np.abs(vals - median)))
 
-    expected_lower = max(0.0, median - 5 * mad)
     expected_upper = median + 5 * mad
+    expected_lower_p5 = float(np.percentile(vals, 5))
 
     result = suggest_thresholds(adata_with_qc)
     standard = result["standard"]
 
-    assert abs(standard["min_genes"] - expected_lower) < 1e-9, (
-        f"min_genes expected {expected_lower}, got {standard['min_genes']}"
-    )
     assert abs(standard["max_genes"] - expected_upper) < 1e-9, (
         f"max_genes expected {expected_upper}, got {standard['max_genes']}"
     )
+    # Lower bound: p5, or None if p5 == 0
+    if expected_lower_p5 == 0.0:
+        assert standard["min_genes"] is None, (
+            f"min_genes expected None (p5==0), got {standard['min_genes']}"
+        )
+    else:
+        assert abs(standard["min_genes"] - expected_lower_p5) < 1e-9, (
+            f"min_genes expected {expected_lower_p5} (p5), got {standard['min_genes']}"
+        )
 
 
 def test_suggest_thresholds_raw_has_median_mad(adata_with_qc):

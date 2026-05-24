@@ -99,7 +99,14 @@ def build_report(adata, output_path: str) -> None:
         "config_yaml": yaml.dump(record["config"], default_flow_style=False, sort_keys=False),
         "dry_run": record.get("dry_run", False),
         "doublet_status": record.get("doublet_status"),
+        "doublet_failed_but_pass": (
+            record.get("doublet_status") == "FAILED"
+            and record.get("status") == "PASS"
+        ),
         "threshold_method": record.get("threshold_method", "manual"),
+        "threshold_sources": record.get("threshold_sources", {}),
+        "genes_before": record["cell_counts"].get("genes_before"),
+        "genes_after": record["cell_counts"].get("genes_after"),
         "before_after_plots": before_after_plots,
         "qc_arrays": record.get("raw_obs_metrics", {}),
         "threshold_explanations": record.get("threshold_explanations", {}),

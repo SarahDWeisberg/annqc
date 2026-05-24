@@ -11,6 +11,14 @@ import scanpy as sc
 logger = logging.getLogger(__name__)
 
 
+def _check_scrublet_available() -> bool:
+    try:
+        import scrublet  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
 def run(
     adata_or_path,
     config=None,
@@ -22,6 +30,8 @@ def run(
     dry_run: bool = False,
     auto_thresholds: bool = False,
     no_doublet_detection: bool = False,
+    mito_prefix=None,
+    auto_thresholds_level: str = "standard",
 ):
     """Run the full AnnQC pipeline.
 
@@ -45,6 +55,11 @@ def run(
         If True, skip actual cell removal, normalization, and h5ad writing.
     auto_thresholds : bool
         If True, override config thresholds with MAD-based suggestions.
+    mito_prefix : str or None
+        Override mitochondrial gene prefix (e.g. 'MT-' for human, 'mt-' for mouse).
+        Overrides cfg["mito"]["prefix"] when provided.
+    auto_thresholds_level : str
+        Stringency level for auto-thresholds: "strict", "standard", or "permissive".
 
     Returns
     -------
@@ -75,6 +90,8 @@ def run(
         else:
             logger.info("Loading h5ad: %s", path)
             adata = sc.read_h5ad(path)
+        adata.var_names_make_unique()
+        logger.debug("var_names_make_unique() applied")
     else:
         adata = adata_or_path.copy()
 
@@ -82,6 +99,14 @@ def run(
         input_file = "in-memory AnnData"
 
     logger.info("Input: %d cells x %d genes", adata.n_obs, adata.n_vars)
+
+    # --- Scrublet availability check ---
+    _scrublet_available = _check_scrublet_available()
+    if not _scrublet_available and not no_doublet_detection:
+        logger.warning(
+            "Scrublet not installed — doublet detection will be skipped. "
+            "Install with: pip install scrublet"
+        )
 
     # Capture raw per-sample counts before any filtering
     raw_per_sample_counts = {}
@@ -113,6 +138,10 @@ def run(
     record["cell_counts"]["input"] = adata.n_obs
     record["dry_run"] = dry_run
 
+    # Apply mito_prefix override before QC metric calculation
+    if mito_prefix is not None:
+        cfg["mito"]["prefix"] = mito_prefix
+
     # --- Step 4: Calculate QC metrics ---
     adata = calculate_qc_metrics(
         adata,
@@ -130,18 +159,98 @@ def run(
     # --- Auto-thresholds (MAD-based) ---
     if auto_thresholds:
         from annqc.thresholds import suggest_thresholds
-        suggested = suggest_thresholds(adata)["standard"]
-        # Override config thresholds with MAD-based suggestions
-        cfg["mito"]["max_pct"] = suggested.get("mito_max_pct") or cfg["mito"]["max_pct"]
-        cfg["cells"]["min_genes"] = suggested.get("min_genes") or cfg["cells"]["min_genes"]
-        cfg["cells"]["max_genes"] = suggested.get("max_genes") or cfg["cells"]["max_genes"]
-        cfg["cells"]["min_counts"] = suggested.get("min_counts") or cfg["cells"]["min_counts"]
+        suggested = suggest_thresholds(adata, level=auto_thresholds_level)[auto_thresholds_level]
+
+        # mito upper bound: use suggestion only when it is a positive number.
+        # None means metric was all-zero (mito genes not found) — keep config
+        # value and warn so the user knows filtering is falling back.
+        mito_sugg = suggested.get("mito_max_pct")
+        if mito_sugg is not None:
+            cfg["mito"]["max_pct"] = mito_sugg
+        else:
+            logger.warning(
+                "Auto mito threshold: pct_counts_mt is all-zero — no mito genes matched "
+                "prefix %r. Check that mito.prefix matches your gene naming convention "
+                "(e.g. 'MT-' for human, 'mt-' for mouse). Keeping config value %.1f%%.",
+                cfg["mito"]["prefix"], cfg["mito"]["max_pct"],
+            )
+
+        # Lower bounds: None means percentile collapsed to 0 (distribution floor
+        # near zero). Keep the config floor so obviously low-quality cells are
+        # still removed, and warn so the behaviour is transparent.
+        min_genes_sugg = suggested.get("min_genes")
+        if min_genes_sugg is not None:
+            cfg["cells"]["min_genes"] = min_genes_sugg
+        else:
+            logger.warning(
+                "Auto min_genes collapsed to 0 (percentile lower bound is 0). "
+                "Keeping config floor of %d.",
+                cfg["cells"]["min_genes"],
+            )
+
+        min_counts_sugg = suggested.get("min_counts")
+        if min_counts_sugg is not None:
+            cfg["cells"]["min_counts"] = min_counts_sugg
+        else:
+            logger.warning(
+                "Auto min_counts collapsed to 0 (percentile lower bound is 0). "
+                "Keeping config floor of %d.",
+                cfg["cells"]["min_counts"],
+            )
+
+        # Upper bounds: always override (None = no cap, which is valid).
+        cfg["cells"]["max_genes"] = suggested.get("max_genes")
         cfg["cells"]["max_counts"] = suggested.get("max_counts")
+
         record["threshold_method"] = "auto_mad"
         record["thresholds"]["method"] = "auto_mad"
-        logger.info("Auto-thresholds (MAD-based): %s", suggested)
+        logger.info("Auto-thresholds (MAD-based, level=%s): %s", auto_thresholds_level, suggested)
+
+        # Track which thresholds came from data vs. config fallback
+        record["threshold_sources"] = {
+            "mito_max_pct": "auto_mad" if mito_sugg is not None else "config_fallback",
+            "min_genes": "auto_mad" if min_genes_sugg is not None else "config_fallback",
+            "min_counts": "auto_mad" if min_counts_sugg is not None else "config_fallback",
+            "max_genes": "auto_mad",
+            "max_counts": "auto_mad",
+        }
+
+        # Warn when multiple samples are present — thresholds are global
+        if sample_key is not None:
+            logger.warning(
+                "Auto-thresholds are computed globally across all samples. "
+                "For multi-sample data, consider reviewing per-sample distributions. "
+                "Use --sample-key with care when samples differ substantially in quality."
+            )
+
+        # Per-sample auto-threshold suggestions (informational only)
+        if sample_key and sample_key in adata.obs.columns:
+            from annqc.thresholds import suggest_thresholds as _suggest_thresholds
+            samples = adata.obs[sample_key].unique()
+            logger.info(
+                "Per-sample auto-threshold suggestions (for reference — global thresholds applied):"
+            )
+            per_sample_auto = {}
+            for s in sorted(samples):
+                mask = adata.obs[sample_key] == s
+                sub = adata[mask]
+                try:
+                    s_suggested = _suggest_thresholds(sub)["standard"]
+                    logger.info(
+                        "  %s: mito_max=%.1f%% min_genes=%s min_counts=%s max_genes=%s",
+                        s,
+                        s_suggested.get("mito_max_pct") or 0,
+                        s_suggested.get("min_genes"),
+                        s_suggested.get("min_counts"),
+                        s_suggested.get("max_genes"),
+                    )
+                    per_sample_auto[str(s)] = s_suggested
+                except Exception as exc:
+                    logger.warning("  %s: threshold suggestion failed — %s", s, exc)
+            record["per_sample_auto_thresholds"] = per_sample_auto
     else:
         record["thresholds"]["method"] = "manual"
+        record["threshold_sources"] = {}
 
     # --- Step 5: First-pass cell flagging (no doublets yet) ---
     adata = flag_cells(adata, cfg)
@@ -158,11 +267,6 @@ def run(
     record["cell_counts"]["after_count_filter"] = _after_removing(
         {"mito", "min_genes", "max_genes", "min_counts", "max_counts"}
     )
-
-    # --- Step 6: Gene-level filtering (before cell removal) ---
-    adata = filter_genes(adata, min_cells=cfg["genes"]["min_cells"])
-    # sc.pp.filter_genes replaces adata's internal arrays, breaking the record reference
-    record = adata.uns["annqc"]
 
     # --- Step 7: Doublet detection ---
     if no_doublet_detection:
@@ -208,6 +312,13 @@ def run(
             adata.n_obs,
             record["cell_counts"]["input"],
         )
+
+        # --- Step 9b: Gene-level filtering (after cell removal) ---
+        record["cell_counts"]["genes_before"] = adata.n_vars
+        adata = filter_genes(adata, min_cells=cfg["genes"]["min_cells"])
+        # sc.pp.filter_genes replaces adata's internal arrays, breaking the record reference
+        record = adata.uns["annqc"]
+        record["cell_counts"]["genes_after"] = adata.n_vars
 
     # --- Step 10: Normalization ---
     if not dry_run:
@@ -387,7 +498,7 @@ def _generate_warnings(record: dict, cfg: dict) -> None:
 
 
 def _set_status(record: dict, cfg: dict) -> None:
-    """Set record['status'] to PASS, WARN, or FAIL."""
+    """Set record['status'] to PASS or FAIL based on cell counts and per-sample results."""
     min_cells_pass = cfg.get("thresholds", {}).get("min_cells_pass", 100)
     cc = record["cell_counts"]
     if cc["output"] < min_cells_pass:
@@ -397,8 +508,4 @@ def _set_status(record: dict, cfg: dict) -> None:
         if stats.get("status") == "FAIL":
             record["status"] = "FAIL"
             return
-    # Never mark PASS if doublet detection failed
-    if record.get("doublet_status") == "FAILED":
-        record["status"] = "INCOMPLETE"
-        return
     record["status"] = "PASS"

@@ -191,8 +191,12 @@ def test_detect_doublets_score_count_matches_n_obs(small_adata):
     )
 
 
-def test_scrublet_failure_sets_incomplete_status(small_adata):
-    """When Scrublet raises an exception, status must be INCOMPLETE."""
+def test_scrublet_failure_sets_failed_doublet_status(small_adata):
+    """When Scrublet raises an exception, doublet_status must be FAILED.
+
+    Main pipeline status is not affected by doublet detection failure —
+    it is managed by _set_status in pipeline.py based on cell counts.
+    """
     import sys
 
     adata = small_adata.copy()
@@ -207,7 +211,8 @@ def test_scrublet_failure_sets_incomplete_status(small_adata):
         result = detect_doublets(adata, seed=42)
 
     assert result.uns["annqc"]["doublet_status"] == "FAILED"
-    assert result.uns["annqc"]["status"] == "INCOMPLETE"
+    # Main status is NOT downgraded by doublet failure — stays as originally set
+    assert result.uns["annqc"]["status"] == "PASS"
     assert result.uns["annqc"].get("doublet_failure_reason") is not None
     assert any("CRITICAL" in w for w in result.uns["annqc"]["warnings"])
 

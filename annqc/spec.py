@@ -46,6 +46,8 @@ def init_record(version: str, date: str, seed: int, config: dict, input_file: st
             "after_count_filter": 0,
             "after_doublet_filter": 0,
             "output": 0,
+            "genes_before": None,
+            "genes_after": None,
         },
         "per_sample": {},
         "warnings": [],
@@ -53,6 +55,8 @@ def init_record(version: str, date: str, seed: int, config: dict, input_file: st
         "doublet_status": None,
         "doublet_failure_reason": None,
         "threshold_explanations": {},
+        "threshold_sources": {},
+        "per_sample_auto_thresholds": {},
     }
 
 

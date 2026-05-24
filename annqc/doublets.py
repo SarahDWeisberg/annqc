@@ -104,12 +104,8 @@ def detect_doublets(adata, threshold="auto", simulate_doublet_ratio: float = 2.0
             adata.uns["annqc"].setdefault("warnings", []).append(
                 f"⚠️ CRITICAL: Doublet detection failed — {failure_reason}. "
                 "All cells are marked as non-doublets. "
-                "Status set to INCOMPLETE. "
                 "Do not publish without manual doublet inspection."
             )
-            # Downgrade PASS → INCOMPLETE; never let a failed doublet run be PASS
-            if adata.uns["annqc"].get("status") == "PASS":
-                adata.uns["annqc"]["status"] = "INCOMPLETE"
 
     if "annqc" in adata.uns and "thresholds" in adata.uns["annqc"]:
         adata.uns["annqc"]["thresholds"]["doublet_threshold"] = resolved_threshold

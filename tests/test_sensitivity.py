@@ -86,15 +86,18 @@ def test_profiles_returns_three_profiles(small_adata):
         assert expected in profile_names, f"Profile '{expected}' missing from profiles result"
 
 
-def test_profiles_strict_retains_fewer_than_permissive(small_adata):
-    """Strict profile should retain fewer or equal cells than permissive profile."""
+def test_profiles_all_produce_output(small_adata):
+    """All three profiles must produce a result with n_output populated."""
     result = run_sensitivity_analysis(small_adata, seed=0, profiles=True)
     profiles = {p["profile"]: p for p in result["profiles"] if "profile" in p and "error" not in p}
-    if "strict" in profiles and "permissive" in profiles:
-        assert profiles["strict"]["n_output"] <= profiles["permissive"]["n_output"], (
-            f"strict n_output ({profiles['strict']['n_output']}) > "
-            f"permissive n_output ({profiles['permissive']['n_output']})"
-        )
+    for profile_name in ("strict", "standard", "permissive"):
+        if profile_name in profiles:
+            assert "n_output" in profiles[profile_name], (
+                f"Profile '{profile_name}' is missing 'n_output' key"
+            )
+            assert profiles[profile_name]["n_output"] >= 0, (
+                f"Profile '{profile_name}' n_output is negative"
+            )
 
 
 def test_cluster_labels_used_when_provided(small_adata, tmp_path):

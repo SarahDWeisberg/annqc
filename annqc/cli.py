@@ -75,7 +75,20 @@ def main():
     default=False,
     help="Skip Scrublet doublet detection. All cells are kept as non-doublets.",
 )
-def run_cmd(input, output, report, config, sample_key, seed, verbose, auto_thresholds, dry_run, no_doublet_detection):
+@click.option(
+    "--mito-prefix",
+    default=None,
+    help="Override the mitochondrial gene prefix (e.g. 'MT-' for human, 'mt-' for mouse). "
+         "Overrides the value in --config.",
+)
+@click.option(
+    "--auto-thresholds-level",
+    default="standard",
+    type=click.Choice(["strict", "standard", "permissive"]),
+    show_default=True,
+    help="Stringency of MAD-based auto-thresholds. Only used with --auto-thresholds.",
+)
+def run_cmd(input, output, report, config, sample_key, seed, verbose, auto_thresholds, dry_run, no_doublet_detection, mito_prefix, auto_thresholds_level):
     """Run the AnnQC pipeline on INPUT.
 
     INPUT may be a path to a .h5ad file, a 10x HDF5 (.h5) file, or a
@@ -95,6 +108,8 @@ def run_cmd(input, output, report, config, sample_key, seed, verbose, auto_thres
             dry_run=dry_run,
             auto_thresholds=auto_thresholds,
             no_doublet_detection=no_doublet_detection,
+            mito_prefix=mito_prefix,
+            auto_thresholds_level=auto_thresholds_level,
         )
     except Exception as exc:
         if verbose:
