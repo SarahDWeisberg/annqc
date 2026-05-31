@@ -133,10 +133,10 @@ def build_profile(
 
     # --- Query obs table ---
     value_filter = (
-        f"tissue_general == '{tissue}' "
-        f"and assay == '{raw_assay}' "
-        f"and suspension_type == '{suspension_type}' "
-        f"and disease == '{DISEASE_FILTER}' "
+        f'tissue_general == "{tissue}" '
+        f'and assay == "{raw_assay}" '
+        f'and suspension_type == "{suspension_type}" '
+        f'and disease == "{DISEASE_FILTER}" '
         f"and is_primary_data == True"
     )
     logger.debug("CELLxGENE filter: %s", value_filter)
@@ -168,14 +168,15 @@ def build_profile(
 
     # Get MT- gene var_ids for mito% calculation
     try:
-        var_df = (
+        all_var_df = (
             census["census_data"]["homo_sapiens"]
             .ms["RNA"]
             .var
-            .read(value_filter="feature_name like 'MT-%'")
+            .read(column_names=["soma_joinid", "feature_name"])
             .concat()
             .to_pandas()
         )
+        var_df = all_var_df[all_var_df["feature_name"].str.startswith("MT-")]
         mt_soma_ids = var_df["soma_joinid"].tolist()
         logger.info("Found %d MT- genes", len(mt_soma_ids))
     except Exception as exc:
