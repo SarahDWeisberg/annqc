@@ -1,0 +1,275 @@
+{
+  "pbmc10k_v3": {
+    "label": "PBMC 10k v3",
+    "organism": "Human",
+    "cells_in": 11769,
+    "published_out": null,
+    "annqc_manual_out": 10281,
+    "annqc_auto_out": 10203,
+    "seurat_out": 239,
+    "scater_out": 9718,
+    "thresholds_manual": {
+      "doublet_threshold": NaN,
+      "max_genes": 4000,
+      "method": "manual",
+      "min_counts": 500,
+      "min_genes": 200,
+      "mito_max_pct": 15
+    },
+    "thresholds_seurat": {
+      "min_genes": 200,
+      "max_mito_pct": 5.0
+    },
+    "thresholds_scater": {
+      "min_genes": 906.8,
+      "max_genes": 4005.1,
+      "min_counts": 2444.5,
+      "max_counts": 17393.0,
+      "max_mito_pct": 14.02
+    },
+    "published_thresholds": {
+      "label": "PBMC 10k v3",
+      "organism": "Human",
+      "source": "VSN-Pipelines tutorial",
+      "cells_in": 10194,
+      "cells_out": null,
+      "min_genes": 200,
+      "max_genes": 4000,
+      "max_mito_pct": 15
+    }
+  },
+  "pbmc1k_v3": {
+    "label": "PBMC 1k v3",
+    "organism": "Human",
+    "cells_in": 1222,
+    "published_out": null,
+    "annqc_manual_out": 805,
+    "annqc_auto_out": 1033,
+    "seurat_out": 21,
+    "scater_out": 981,
+    "thresholds_manual": {
+      "doublet_threshold": NaN,
+      "max_genes": 2500,
+      "method": "manual",
+      "min_counts": 500,
+      "min_genes": 200,
+      "mito_max_pct": 20
+    },
+    "thresholds_seurat": {
+      "min_genes": 200,
+      "max_mito_pct": 5.0
+    },
+    "thresholds_scater": {
+      "min_genes": 953.5,
+      "max_genes": 3861.0,
+      "min_counts": 2685.3,
+      "max_counts": 16357.5,
+      "max_mito_pct": 15.86
+    },
+    "published_thresholds": {
+      "label": "PBMC 1k v3",
+      "organism": "Human",
+      "source": "Seurat v5 tutorial",
+      "cells_in": 1222,
+      "cells_out": null,
+      "min_genes": 200,
+      "max_genes": 2500,
+      "max_mito_pct": 5
+    }
+  },
+  "pbmc5k_v3": {
+    "label": "PBMC 5k v3",
+    "organism": "Human",
+    "cells_in": 5025,
+    "published_out": 2527,
+    "annqc_manual_out": 4291,
+    "annqc_auto_out": 4171,
+    "seurat_out": 134,
+    "scater_out": 3854,
+    "thresholds_manual": {
+      "doublet_threshold": NaN,
+      "max_genes": 4100,
+      "method": "manual",
+      "min_counts": 500,
+      "min_genes": 1000,
+      "mito_max_pct": 25
+    },
+    "thresholds_seurat": {
+      "min_genes": 200,
+      "max_mito_pct": 5.0
+    },
+    "thresholds_scater": {
+      "min_genes": 1240.7,
+      "max_genes": 3798.2,
+      "min_counts": 3598.0,
+      "max_counts": 16921.3,
+      "max_mito_pct": 13.4
+    },
+    "published_thresholds": {
+      "label": "PBMC 5k v3",
+      "organism": "Human",
+      "source": "NBIS Scanpy workshop",
+      "cells_in": 5025,
+      "cells_out": 2527,
+      "min_genes": 1000,
+      "max_genes": 4100,
+      "max_mito_pct": 25
+    }
+  },
+  "mouse_thymus": {
+    "label": "Mouse Thymus",
+    "organism": "Mouse",
+    "cells_in": 31178,
+    "published_out": 8605,
+    "annqc_manual_out": 9543,
+    "annqc_auto_out": 21101,
+    "seurat_out": 24174,
+    "scater_out": 26546,
+    "thresholds_manual": {
+      "doublet_threshold": NaN,
+      "max_genes": 6000,
+      "method": "manual",
+      "min_counts": 500,
+      "min_genes": 300,
+      "mito_max_pct": 4.5
+    },
+    "thresholds_seurat": {
+      "min_genes": 200,
+      "max_mito_pct": 5.0
+    },
+    "thresholds_scater": {
+      "min_genes": 85.5,
+      "max_genes": 1190.4,
+      "min_counts": 69.0,
+      "max_counts": 1544.5,
+      "max_mito_pct": 3.2
+    },
+    "published_thresholds": {
+      "label": "Mouse Thymus",
+      "organism": "Mouse",
+      "source": "Galaxy Training / Bacon 2018",
+      "cells_in": 31178,
+      "cells_out": 8605,
+      "min_genes": 300,
+      "max_genes": null,
+      "max_mito_pct": 4.5
+    }
+  },
+  "haber_intestine": {
+    "label": "Mouse Intestine (Haber 2017)",
+    "organism": "Mouse",
+    "cells_in": 13353,
+    "published_out": 7216,
+    "annqc_manual_out": 13078,
+    "annqc_auto_out": 11664,
+    "seurat_out": 12672,
+    "scater_out": 10400,
+    "thresholds_manual": {
+      "doublet_threshold": NaN,
+      "max_genes": null,
+      "method": "manual",
+      "min_counts": 500,
+      "min_genes": 500,
+      "mito_max_pct": 20
+    },
+    "thresholds_seurat": {
+      "min_genes": 200,
+      "max_mito_pct": 5.0
+    },
+    "thresholds_scater": {
+      "min_genes": 807.7,
+      "max_genes": 3196.2,
+      "min_counts": 1411.5,
+      "max_counts": 11576.8,
+      "max_mito_pct": 2.96
+    },
+    "published_thresholds": {
+      "label": "Mouse Intestine (Haber 2017)",
+      "organism": "Mouse",
+      "source": "Luecken & Theis 2019",
+      "cells_in": 8882,
+      "cells_out": 7216,
+      "min_genes": 500,
+      "max_genes": null,
+      "max_mito_pct": 20
+    }
+  },
+  "neurips_bone_marrow": {
+    "label": "NeurIPS Bone Marrow",
+    "organism": "Human",
+    "cells_in": 17125,
+    "published_out": 14814,
+    "annqc_manual_out": 9887,
+    "annqc_auto_out": 12914,
+    "seurat_out": 4601,
+    "scater_out": 12211,
+    "thresholds_manual": {
+      "doublet_threshold": NaN,
+      "max_genes": null,
+      "method": "manual",
+      "min_counts": 500,
+      "min_genes": 200,
+      "mito_max_pct": 8
+    },
+    "thresholds_seurat": {
+      "min_genes": 200,
+      "max_mito_pct": 5.0
+    },
+    "thresholds_scater": {
+      "min_genes": 384.1,
+      "max_genes": 5488.1,
+      "min_counts": 944.1,
+      "max_counts": 35902.1,
+      "max_mito_pct": 16.87
+    },
+    "published_thresholds": {
+      "label": "NeurIPS Bone Marrow",
+      "organism": "Human",
+      "source": "sc-best-practices (Theis lab)",
+      "cells_in": 16934,
+      "cells_out": 14814,
+      "min_genes": null,
+      "max_genes": null,
+      "max_mito_pct": 8
+    }
+  },
+  "wu_kidney": {
+    "label": "Human Kidney (Wu 2019)",
+    "organism": "Human",
+    "cells_in": 25404,
+    "published_out": 23366,
+    "annqc_manual_out": 23369,
+    "annqc_auto_out": 21090,
+    "seurat_out": 11328,
+    "scater_out": 20882,
+    "thresholds_manual": {
+      "doublet_threshold": NaN,
+      "max_genes": 2500,
+      "method": "manual",
+      "min_counts": null,
+      "min_genes": 200,
+      "mito_max_pct": 30
+    },
+    "thresholds_seurat": {
+      "min_genes": 200,
+      "max_mito_pct": 5.0
+    },
+    "thresholds_scater": {
+      "min_genes": 342.5,
+      "max_genes": 1801.9,
+      "min_counts": 618.1,
+      "max_counts": 5509.5,
+      "max_mito_pct": 22.91
+    },
+    "published_thresholds": {
+      "label": "Human Kidney (Wu 2019)",
+      "organism": "Human",
+      "source": "Wu et al. 2019",
+      "cells_in": 25404,
+      "cells_out": 23366,
+      "min_genes": 200,
+      "max_genes": 2500,
+      "max_mito_pct": 30
+    }
+  }
+}
