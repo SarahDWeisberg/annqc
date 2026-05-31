@@ -173,9 +173,10 @@
       color: #fff;
     }
 
-    .badge-pass  { background: #27AE60; }
-    .badge-fail  { background: #E74C3C; }
-    .badge-warn  { background: #F39C12; }
+    .badge-pass   { background: #27AE60; }
+    .badge-fail   { background: #E74C3C; }
+    .badge-warn   { background: #F39C12; }
+    .badge-review { background: #4A90D9; }
 
     /* ── Tables ──────────────────────────────────────────────── */
     .tbl-wrap { overflow-x: auto; }
@@ -458,6 +459,14 @@
 <div style="background:#FEE2E2;border-bottom:3px solid #DC2626;color:#991B1B;text-align:center;padding:14px 24px;font-size:1.05em;font-weight:bold;">
   &#10060; FAIL — This run did not pass quality checks. Review warnings below before proceeding.
 </div>
+{% elif status == "WARN" %}
+<div style="background:#FEF9E7;border-bottom:3px solid #F39C12;color:#7D6608;text-align:center;padding:14px 24px;font-size:1.05em;font-weight:bold;">
+  &#9888; WARN — QC completed but aggressive filtering or high doublet rate was detected. Review warnings.
+</div>
+{% elif status == "REVIEW" %}
+<div style="background:#EBF4FF;border-bottom:3px solid #4A90D9;color:#1a5276;text-align:center;padding:14px 24px;font-size:1.05em;font-weight:bold;">
+  &#128269; REVIEW — Cluster QC flagged potential biology-vs-damage ambiguity. See cluster warnings below.
+</div>
 {% elif status == "PASS" %}
 <div style="background:#D1FAE5;border-bottom:3px solid #10B981;color:#065F46;text-align:center;padding:14px 24px;font-size:1.05em;font-weight:bold;">
   &#10003; PASS — QC completed successfully.
@@ -498,11 +507,27 @@
   </div>
   <div class="header-separator"></div>
 
+  {% if tissue_preset %}
+  <div class="info-box" style="margin-bottom:16px;">
+    &#127981; <strong>Tissue preset applied: {{ tissue_preset }}</strong> —
+    default thresholds were initialized from the <em>{{ tissue_preset }}</em> preset before your config was applied.
+    Run <code>annqc list-presets</code> to see all available presets.
+  </div>
+  {% endif %}
+
   {% if doublet_status == "SKIPPED" %}
   <div style="background:#FFF3CD;border:1px solid #F59E0B;color:#92400E;padding:12px 20px;margin-bottom:16px;border-radius:6px;font-size:0.95rem;">
     &#9888; <strong>Doublet detection was intentionally skipped.</strong>
     QC is incomplete with respect to multiplets.
     Results may contain doublets that could affect downstream clustering and differential expression.
+  </div>
+  {% endif %}
+
+  {% if doublet_subsampled %}
+  <div style="background:#FFF3CD;border:1px solid #F59E0B;color:#92400E;padding:12px 20px;margin-bottom:16px;border-radius:6px;font-size:0.95rem;">
+    &#9888; <strong>Doublet detection used subsampling ({{ "{:,}".format(doublet_subsample_n) }} cells).</strong>
+    Cells outside the subsample were not scored and are marked as non-doublets.
+    Review clusters with unexpectedly low doublet rates.
   </div>
   {% endif %}
 
@@ -537,6 +562,10 @@
           <span class="badge badge-pass">PASS</span>
         {% elif status == "FAIL" %}
           <span class="badge badge-fail">FAIL</span>
+        {% elif status == "WARN" %}
+          <span class="badge badge-warn">WARN</span>
+        {% elif status == "REVIEW" %}
+          <span class="badge badge-review">REVIEW</span>
         {% else %}
           <span class="badge badge-warn">{{ status }}</span>
         {% endif %}
@@ -620,6 +649,175 @@
     </script>
     {% endif %}
 
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 3b — Cell Label Distribution
+       ═══════════════════════════════════════════════════════════ -->
+  {% if plots.cell_labels %}
+  <div class="card">
+    <div class="section-title">Cell Label Distribution</div>
+    <p class="section-subtitle">Every input cell is classified into one of six categories</p>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+      {% set label_colors = {"pass":"#27AE60","review":"#F39C12","high_mito":"#E67E22","low_quality":"#E74C3C","damaged":"#8E44AD","doublet":"#2C3E50"} %}
+      {% set label_display = {"pass":"Pass","review":"Review","high_mito":"High Mito","low_quality":"Low Quality","damaged":"Damaged","doublet":"Doublet"} %}
+      {% set label_desc = {
+        "pass": "Passes all QC thresholds — included in output",
+        "review": "Passes all thresholds but near a boundary (within 10%). Worth a manual check.",
+        "high_mito": "Fails mito threshold only. May be stressed or damaged cells, or biology.",
+        "low_quality": "Too few genes or too few UMI counts. Likely empty droplets or poor captures.",
+        "damaged": "Fails two or more thresholds simultaneously. Strongly suspect quality.",
+        "doublet": "Predicted doublet by Scrublet. Remove before clustering."
+      } %}
+      {% for lbl in ["pass","review","high_mito","low_quality","damaged","doublet"] %}
+        {% set count = cell_label_counts.get(lbl, 0) %}
+        {% set total = cell_label_counts.values()|sum %}
+        <div style="border-left:4px solid {{ label_colors[lbl] }};padding:10px 14px;background:#fff;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+          <div style="font-size:1.4rem;font-weight:700;color:#2C3E50;">{{ "{:,}".format(count) }}</div>
+          <div style="font-weight:600;color:{{ label_colors[lbl] }};font-size:0.85rem;margin-bottom:4px;">{{ label_display[lbl] }}</div>
+          <div style="font-size:0.78rem;color:#7F8C8D;">{{ label_desc[lbl] }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="plot-full" id="plot-cell-labels"></div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var fig = {{ plots.cell_labels }};
+      Plotly.newPlot('plot-cell-labels', fig.data, fig.layout, {responsive: true});
+    });
+    </script>
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 3c — Cluster QC Warnings
+       ═══════════════════════════════════════════════════════════ -->
+  {% if cluster_warnings %}
+  <div class="card">
+    <div class="section-title">Cluster QC Warnings</div>
+    <p class="section-subtitle">Clusters with elevated mitochondrial content that may reflect biology rather than damage</p>
+
+    {% for w in cluster_warnings %}
+    <div class="warn-box">&#128269; {{ w }}</div>
+    {% endfor %}
+
+    {% if cluster_qc %}
+    <div class="tbl-wrap mt-24">
+      <table>
+        <thead>
+          <tr>
+            <th>Cluster</th>
+            <th class="text-right">Cells</th>
+            <th class="text-right">Median Mito %</th>
+            <th class="text-right">% Would Be Removed</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cid, stats in cluster_qc.items() %}
+          <tr>
+            <td><strong>{{ cid }}</strong></td>
+            <td class="text-right">{{ "{:,}".format(stats.n_cells) }}</td>
+            <td class="text-right">{{ "%.1f" | format(stats.median_mito) }}%</td>
+            <td class="text-right {% if stats.pct_would_remove > 50 %}removed{% endif %}">
+              {{ "%.0f" | format(stats.pct_would_remove) }}%
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 3d — Reference Atlas Comparison
+       ═══════════════════════════════════════════════════════════ -->
+  {% if reference_comparison %}
+  <div class="card">
+    <div class="section-title">Reference Atlas Comparison</div>
+    {% set rc = reference_comparison %}
+    {% set conf = rc.confidence %}
+
+    {% if conf == "insufficient" %}
+    <div class="warn-box">
+      &#9888; Insufficient reference data (n={{ rc.n_references }} datasets) for
+      <strong>{{ rc.tissue }} / {{ rc.assay }} / {{ rc.suspension_type }}</strong>.
+      Comparison not shown. Need ≥5 matching reference datasets.
+    </div>
+    {% else %}
+
+    <p class="section-subtitle">
+      Dataset-level medians compared against {{ rc.n_references }} reference
+      {{ rc.tissue }} datasets ({{ rc.assay }}, {{ rc.suspension_type }}).
+      {% if conf == "medium" %}<strong>Moderate confidence</strong> (n={{ rc.n_references }}).{% endif %}
+      {% if conf == "low" %}<strong style="color:#E74C3C">Low confidence</strong> (n={{ rc.n_references }} — treat with caution).{% endif %}
+      References from CELLxGENE census {{ rc.census_version or "" }}, generated {{ rc.generated_date or "" }}.
+    </p>
+
+    {% for w in reference_warnings %}
+    <div class="warn-box">&#128269; {{ w }}</div>
+    {% endfor %}
+
+    <div class="tbl-wrap mt-24">
+      <table>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th class="text-right">This Dataset</th>
+            <th class="text-right">Ref Median</th>
+            <th class="text-right">Ref IQR</th>
+            <th class="text-right">Ref P5–P95</th>
+            <th class="text-right">Percentile</th>
+            <th>Flag</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set metric_display = {
+            "pct_counts_mt": "Mitochondrial %",
+            "n_genes_by_counts": "Genes / cell",
+            "total_counts": "UMI counts",
+            "pct_counts_ribo": "Ribosomal %"
+          } %}
+          {% for metric, r in rc.comparison.items() %}
+          <tr>
+            <td><strong>{{ metric_display.get(metric, metric) }}</strong></td>
+            <td class="text-right">{{ "%.2g" | format(r.dataset_median) }}</td>
+            <td class="text-right">{{ "%.2g" | format(r.reference_median) if r.reference_median is not none else "—" }}</td>
+            <td class="text-right">
+              {{ "%.2g" | format(r.reference_q25) }}–{{ "%.2g" | format(r.reference_q75) }}
+            </td>
+            <td class="text-right">
+              {{ "%.2g" | format(r.reference_p5) }}–{{ "%.2g" | format(r.reference_p95) }}
+            </td>
+            <td class="text-right">
+              {% if r.percentile is not none %}
+                {{ "%.0f" | format(r.percentile) }}th
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if r.flag == "NORMAL" %}
+                <span class="badge badge-pass">NORMAL</span>
+              {% elif r.flag == "HIGH" %}
+                <span class="badge badge-fail">HIGH</span>
+              {% elif r.flag == "LOW" %}
+                <span class="badge badge-warn">LOW</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 

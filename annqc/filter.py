@@ -2,6 +2,7 @@
 
 import logging
 
+import numpy as np
 import scanpy as sc
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,81 @@ def flag_cells(adata, config: dict):
 
     n_fail = sum(1 for r in reason if r != "")
     logger.info("flag_cells: %d/%d cells flagged for removal", n_fail, n_cells)
+    return adata
+
+
+def assign_cell_labels(adata, cfg: dict):
+    """Assign multi-label categories to adata.obs['annqc_cell_label'].
+
+    Labels (in priority order):
+        doublet     — predicted doublet by Scrublet
+        damaged     — fails two or more of: mito, gene count, UMI count thresholds
+        high_mito   — fails mito threshold only
+        low_quality — fails min_genes or min_counts only (single failure, not mito)
+        review      — passes all hard thresholds but within 10% of any boundary
+        pass        — clean cell
+
+    Requires pct_counts_mt, n_genes_by_counts, total_counts in adata.obs
+    (computed by calculate_qc_metrics). Must be called before apply_filters
+    so all input cells are present.
+    """
+    n_cells = adata.n_obs
+    mito_max = cfg["mito"].get("max_pct")
+    min_genes = cfg["cells"].get("min_genes")
+    max_genes = cfg["cells"].get("max_genes")
+    min_counts = cfg["cells"].get("min_counts")
+    max_counts = cfg["cells"].get("max_counts")
+
+    mito_fail = np.zeros(n_cells, dtype=bool)
+    gene_fail = np.zeros(n_cells, dtype=bool)
+    count_fail = np.zeros(n_cells, dtype=bool)
+    doublet_fail = np.zeros(n_cells, dtype=bool)
+
+    if mito_max is not None and "pct_counts_mt" in adata.obs.columns:
+        mito_fail = adata.obs["pct_counts_mt"].values > mito_max
+    if min_genes is not None and "n_genes_by_counts" in adata.obs.columns:
+        gene_fail |= adata.obs["n_genes_by_counts"].values < min_genes
+    if max_genes is not None and "n_genes_by_counts" in adata.obs.columns:
+        gene_fail |= adata.obs["n_genes_by_counts"].values > max_genes
+    if min_counts is not None and "total_counts" in adata.obs.columns:
+        count_fail |= adata.obs["total_counts"].values < min_counts
+    if max_counts is not None and "total_counts" in adata.obs.columns:
+        count_fail |= adata.obs["total_counts"].values > max_counts
+    if "annqc_is_doublet" in adata.obs.columns:
+        doublet_fail = adata.obs["annqc_is_doublet"].values.astype(bool)
+
+    n_failures = mito_fail.astype(int) + gene_fail.astype(int) + count_fail.astype(int)
+
+    # "review": passes all hard thresholds but within 10% of any lower boundary
+    review_flag = np.zeros(n_cells, dtype=bool)
+    if mito_max is not None and "pct_counts_mt" in adata.obs.columns:
+        review_flag |= (adata.obs["pct_counts_mt"].values > mito_max * 0.9) & ~mito_fail
+    if min_genes is not None and "n_genes_by_counts" in adata.obs.columns:
+        review_flag |= (adata.obs["n_genes_by_counts"].values < min_genes * 1.1) & ~gene_fail
+    if min_counts is not None and "total_counts" in adata.obs.columns:
+        review_flag |= (adata.obs["total_counts"].values < min_counts * 1.1) & ~count_fail
+
+    labels = np.empty(n_cells, dtype=object)
+    for i in range(n_cells):
+        if doublet_fail[i]:
+            labels[i] = "doublet"
+        elif n_failures[i] >= 2:
+            labels[i] = "damaged"
+        elif mito_fail[i]:
+            labels[i] = "high_mito"
+        elif gene_fail[i] or count_fail[i]:
+            labels[i] = "low_quality"
+        elif review_flag[i]:
+            labels[i] = "review"
+        else:
+            labels[i] = "pass"
+
+    adata.obs["annqc_cell_label"] = labels
+    counts = {
+        lbl: int((labels == lbl).sum())
+        for lbl in ["pass", "review", "high_mito", "low_quality", "damaged", "doublet"]
+    }
+    logger.info("assign_cell_labels: %s", counts)
     return adata
 
 

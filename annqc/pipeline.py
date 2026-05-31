@@ -32,6 +32,12 @@ def run(
     no_doublet_detection: bool = False,
     mito_prefix=None,
     auto_thresholds_level: str = "standard",
+    tissue_preset: str = None,
+    no_cluster_qc: bool = False,
+    subsample_doublets: int = 0,
+    reference_tissue: str = None,
+    reference_assay: str = None,
+    reference_suspension_type: str = "cell",
 ):
     """Run the full AnnQC pipeline.
 
@@ -60,6 +66,24 @@ def run(
         Overrides cfg["mito"]["prefix"] when provided.
     auto_thresholds_level : str
         Stringency level for auto-thresholds: "strict", "standard", or "permissive".
+    tissue_preset : str or None
+        Name of a tissue preset (e.g. "pbmc", "kidney", "gut"). Preset values
+        are applied after DEFAULT_CONFIG but before user config, so user config
+        always wins.
+    no_cluster_qc : bool
+        If True, skip cluster-aware mito QC (faster, no leiden clustering).
+    subsample_doublets : int
+        If > 0, subsample to this many cells for Scrublet to reduce memory.
+        Unsampled cells receive NaN scores and are not called as doublets.
+    reference_tissue : str or None
+        Tissue name for reference atlas comparison (e.g. "kidney", "blood").
+        Must match CELLxGENE tissue_general vocabulary. If None, comparison
+        is skipped.
+    reference_assay : str or None
+        Assay name for reference atlas comparison (e.g. "10x 3' v3" or
+        canonical "10x_v3"). If None, comparison is skipped.
+    reference_suspension_type : str
+        "cell" (default) or "nucleus". Used for reference profile lookup.
 
     Returns
     -------
@@ -67,9 +91,12 @@ def run(
         Cleaned AnnData with adata.uns['annqc'] fully populated.
     """
     from annqc import __version__
-    from annqc.config import DEFAULT_CONFIG, _deep_merge, get_default_config, load_config
+    from annqc.config import (
+        DEFAULT_CONFIG, _deep_merge, get_default_config, load_config, load_config_raw,
+        validate_config,
+    )
     from annqc.doublets import detect_doublets
-    from annqc.filter import apply_filters, filter_genes, flag_cells
+    from annqc.filter import apply_filters, assign_cell_labels, filter_genes, flag_cells
     from annqc.qc import calculate_qc_metrics
     from annqc.spec import init_record
     from annqc.utils import ensure_dir
@@ -116,14 +143,25 @@ def run(
         logger.info(f"Sample counts: {raw_per_sample_counts}")
 
     # --- Step 2: Resolve config ---
+    # Precedence: DEFAULT_CONFIG < tissue_preset < user config < auto-thresholds
+    # We apply preset before user config so that user config always wins.
     if config is None:
-        cfg = get_default_config()
+        user_raw = {}
     elif isinstance(config, (str, os.PathLike)):
-        cfg = load_config(str(config))
+        user_raw = load_config_raw(str(config))
     elif isinstance(config, dict):
-        cfg = _deep_merge(DEFAULT_CONFIG, config)
+        user_raw = config
     else:
         raise TypeError(f"config must be dict, str/Path, or None; got {type(config)}")
+
+    cfg = get_default_config()
+    if tissue_preset is not None:
+        from annqc.presets import get_preset
+        preset_overrides = get_preset(tissue_preset)
+        cfg = _deep_merge(cfg, preset_overrides)
+        logger.info("Applied tissue preset: %s", tissue_preset)
+    cfg = _deep_merge(cfg, user_raw)
+    validate_config(cfg)
 
     # --- Step 3: Initialize provenance record ---
     now = datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds")
@@ -137,6 +175,7 @@ def run(
     adata.uns["annqc"] = record
     record["cell_counts"]["input"] = adata.n_obs
     record["dry_run"] = dry_run
+    record["tissue_preset"] = tissue_preset
 
     # Apply mito_prefix override before QC metric calculation
     if mito_prefix is not None:
@@ -156,10 +195,59 @@ def run(
             _raw[col] = adata.obs[col].tolist()
     record["raw_obs_metrics"] = _raw
 
+    # --- Step 4.5a: Reference atlas comparison ---
+    if reference_tissue is not None and reference_assay is not None:
+        try:
+            from annqc.reference.compare import compare_to_reference, reference_warnings
+            _ref_result = compare_to_reference(
+                adata,
+                tissue=reference_tissue,
+                assay=reference_assay,
+                suspension_type=reference_suspension_type,
+            )
+            if _ref_result is not None:
+                record["reference_comparison"] = _ref_result
+                _ref_warnings = reference_warnings(_ref_result)
+                record["reference_warnings"] = _ref_warnings
+                for w in _ref_warnings:
+                    logger.warning("Reference comparison: %s", w)
+                logger.info(
+                    "Reference comparison complete (n=%d refs, confidence=%s)",
+                    _ref_result.get("n_references", 0),
+                    _ref_result.get("confidence", "?"),
+                )
+            else:
+                logger.info(
+                    "No reference profile available for tissue=%r assay=%r suspension=%r",
+                    reference_tissue, reference_assay, reference_suspension_type,
+                )
+        except Exception as exc:
+            logger.warning("Reference atlas comparison failed: %s", exc)
+
+    # --- Step 4.5b: Cluster-aware mito QC ---
+    if not no_cluster_qc:
+        try:
+            from annqc.cluster_qc import run_cluster_qc
+            adata, _cluster_stats, _cluster_warnings = run_cluster_qc(
+                adata,
+                mito_threshold=cfg["mito"]["max_pct"],
+            )
+            record["cluster_qc"] = _cluster_stats
+            record["cluster_warnings"] = _cluster_warnings
+            for w in _cluster_warnings:
+                logger.warning("Cluster QC: %s", w)
+        except Exception as exc:
+            logger.warning("Cluster QC failed: %s", exc)
+
     # --- Auto-thresholds (MAD-based) ---
+    _LEVEL_N = {"strict": 3, "standard": 5, "permissive": 7}
+    _MITO_FLOOR = 10.0
+
     if auto_thresholds:
         from annqc.thresholds import suggest_thresholds
-        suggested = suggest_thresholds(adata, level=auto_thresholds_level)[auto_thresholds_level]
+        _result = suggest_thresholds(adata, level=auto_thresholds_level)
+        suggested = _result[auto_thresholds_level]
+        _raw_stats = _result["raw"]
 
         # mito upper bound: use suggestion only when it is a positive number.
         # None means metric was all-zero (mito genes not found) — keep config
@@ -167,6 +255,22 @@ def run(
         mito_sugg = suggested.get("mito_max_pct")
         if mito_sugg is not None:
             cfg["mito"]["max_pct"] = mito_sugg
+            # Warn when the mito_min_pct floor was applied — MAD alone gave a
+            # lower value, which can indicate non-blood tissue where cells have
+            # elevated baseline mitochondrial content (gut, heart, muscle).
+            if "pct_counts_mt" in _raw_stats:
+                _mt = _raw_stats["pct_counts_mt"]
+                _n = _LEVEL_N.get(auto_thresholds_level, 5)
+                _mad_mito = min(_mt["median"] + _n * _mt["mad"], 100.0)
+                if _mad_mito < _MITO_FLOOR:
+                    logger.warning(
+                        "Auto mito threshold: MAD-based value was %.1f%% — below the "
+                        "%.1f%% minimum floor. Using %.1f%% instead. "
+                        "Non-blood tissues (gut, heart, muscle) often have higher baseline "
+                        "mitochondrial content; if this threshold is too strict, set "
+                        "mito.max_pct explicitly in your config.",
+                        _mad_mito, _MITO_FLOOR, mito_sugg,
+                    )
         else:
             logger.warning(
                 "Auto mito threshold: pct_counts_mt is all-zero — no mito genes matched "
@@ -281,6 +385,7 @@ def run(
             threshold=cfg["doublets"]["threshold"],
             simulate_doublet_ratio=cfg["doublets"]["simulate_doublet_ratio"],
             seed=seed,
+            subsample_n=subsample_doublets,
         )
 
     # --- Step 8: Re-flag cells including doublets ---
@@ -291,6 +396,17 @@ def run(
     record["cell_counts"]["after_doublet_filter"] = _after_removing(
         {"mito", "min_genes", "max_genes", "min_counts", "max_counts", "doublet"}
     )
+
+    # --- Step 8.5: Assign cell labels ---
+    try:
+        adata = assign_cell_labels(adata, cfg)
+        label_counts = {
+            lbl: int((adata.obs["annqc_cell_label"] == lbl).sum())
+            for lbl in ["pass", "review", "high_mito", "low_quality", "damaged", "doublet"]
+        }
+        record["cell_labels"] = label_counts
+    except Exception as exc:
+        logger.warning("Cell label assignment failed: %s", exc)
 
     # --- Step 9: Remove flagged cells (or simulate in dry run) ---
     if dry_run:
@@ -498,14 +614,42 @@ def _generate_warnings(record: dict, cfg: dict) -> None:
 
 
 def _set_status(record: dict, cfg: dict) -> None:
-    """Set record['status'] to PASS or FAIL based on cell counts and per-sample results."""
-    min_cells_pass = cfg.get("thresholds", {}).get("min_cells_pass", 100)
+    """Set record['status'] to PASS/REVIEW/WARN/FAIL."""
+    thr = cfg.get("thresholds", {})
+    min_cells_pass = thr.get("min_cells_pass", 100)
+    min_cells_warn = thr.get("min_cells_warn", 500)
     cc = record["cell_counts"]
-    if cc["output"] < min_cells_pass:
+    n_input = cc.get("input", 0)
+    n_output = cc.get("output", 0)
+
+    # FAIL: too few cells remaining, or any per-sample FAIL
+    if n_output < min_cells_pass:
         record["status"] = "FAIL"
         return
     for stats in record.get("per_sample", {}).values():
         if stats.get("status") == "FAIL":
             record["status"] = "FAIL"
             return
+
+    # WARN: aggressive filtering or high doublet rate or very low cell count
+    if n_output < min_cells_warn:
+        record["status"] = "WARN"
+        return
+    after_mito = cc.get("after_mito_filter", n_input)
+    if n_input > 0 and (n_input - after_mito) / n_input > 0.15:
+        record["status"] = "WARN"
+        return
+    cells_before_doublet = cc.get("after_count_filter", 0)
+    cells_after_doublet = cc.get("after_doublet_filter", 0)
+    if cells_before_doublet > 0:
+        doublet_rate = (cells_before_doublet - cells_after_doublet) / cells_before_doublet
+        if doublet_rate > 0.08:
+            record["status"] = "WARN"
+            return
+
+    # REVIEW: cluster QC fired warnings
+    if record.get("cluster_warnings"):
+        record["status"] = "REVIEW"
+        return
+
     record["status"] = "PASS"

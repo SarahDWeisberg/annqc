@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "tissue": "kidney",
+  "assay": "10x_v2",
+  "assay_raw": "10x_v2",
+  "suspension_type": "cell",
+  "species": "Homo sapiens",
+  "generated_date": "2026-05-31",
+  "census_version": "local",
+  "inclusion_criteria": "local h5ad files, tissue=kidney, assay=10x_v2",
+  "n_datasets": 3,
+  "n_cells_total": 0,
+  "confidence": "insufficient",
+  "disease_composition": {},
+  "development_stage_composition": {},
+  "metrics": {
+    "pct_counts_mt": {
+      "dataset_medians": [
+        11.4716,
+        10.9681,
+        1.5819
+      ],
+      "summary": {
+        "median": 10.9681,
+        "q25": 6.275,
+        "q75": 11.2199,
+        "mad": 0.5036,
+        "p5": 2.5205,
+        "p95": 11.4213,
+        "n": 3
+      }
+    },
+    "n_genes_by_counts": {
+      "dataset_medians": [
+        837.0,
+        887.0,
+        684.0
+      ],
+      "summary": {
+        "median": 837.0,
+        "q25": 760.5,
+        "q75": 862.0,
+        "mad": 50.0,
+        "p5": 699.3,
+        "p95": 882.0,
+        "n": 3
+      }
+    },
+    "total_counts": {
+      "dataset_medians": [
+        2081.0,
+        2094.0,
+        1499.0
+      ],
+      "summary": {
+        "median": 2081.0,
+        "q25": 1790.0,
+        "q75": 2087.5,
+        "mad": 13.0,
+        "p5": 1557.2,
+        "p95": 2092.7,
+        "n": 3
+      }
+    },
+    "pct_counts_ribo": {
+      "dataset_medians": [
+        21.1462,
+        14.0678,
+        19.6866
+      ],
+      "summary": {
+        "median": 19.6866,
+        "q25": 16.8772,
+        "q75": 20.4164,
+        "mad": 1.4596,
+        "p5": 14.6297,
+        "p95": 21.0003,
+        "n": 3
+      }
+    }
+  }
+}

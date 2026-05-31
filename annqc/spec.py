@@ -57,6 +57,14 @@ def init_record(version: str, date: str, seed: int, config: dict, input_file: st
         "threshold_explanations": {},
         "threshold_sources": {},
         "per_sample_auto_thresholds": {},
+        "tissue_preset": None,
+        "cell_labels": {},
+        "cluster_qc": {},
+        "cluster_warnings": [],
+        "doublet_subsampled": False,
+        "doublet_subsample_n": None,
+        "reference_comparison": None,
+        "reference_warnings": [],
     }
 
 

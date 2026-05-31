@@ -125,6 +125,18 @@ def config_to_yaml(config: dict) -> str:
     return yaml.dump(config, default_flow_style=False, sort_keys=False)
 
 
+def load_config_raw(path: str) -> dict:
+    """Load user YAML without merging with DEFAULT_CONFIG.
+
+    Use this when you need to apply a preset between DEFAULT_CONFIG and the
+    user config (preset < user wins).
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Config file not found: {path}")
+    with open(path) as fh:
+        return yaml.safe_load(fh) or {}
+
+
 def get_default_config() -> dict:
     """Return a deep copy of DEFAULT_CONFIG."""
     return copy.deepcopy(DEFAULT_CONFIG)

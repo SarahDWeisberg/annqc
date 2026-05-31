@@ -59,6 +59,10 @@ def build_report(adata, output_path: str) -> None:
     waterfall = plots.plot_filtering_waterfall(record["cell_counts"])
     per_sample_plot = plots.plot_per_sample_summary(record.get("per_sample", {}))
 
+    # Cell label distribution plot
+    cell_label_counts = record.get("cell_labels", {})
+    cell_label_plot = plots.plot_cell_label_distribution(cell_label_counts) if cell_label_counts else None
+
     # Before/after plots (uses raw_obs_metrics snapshot from pipeline)
     raw = record.get("raw_obs_metrics", {})
     before_after_plots = {}
@@ -112,6 +116,14 @@ def build_report(adata, output_path: str) -> None:
         "threshold_explanations": record.get("threshold_explanations", {}),
         "methods_text_full": methods_text_full,
         "methods_text_short": methods_text_short,
+        "tissue_preset": record.get("tissue_preset"),
+        "cell_label_counts": cell_label_counts,
+        "cluster_qc": record.get("cluster_qc", {}),
+        "cluster_warnings": record.get("cluster_warnings", []),
+        "doublet_subsampled": record.get("doublet_subsampled", False),
+        "doublet_subsample_n": record.get("doublet_subsample_n"),
+        "reference_comparison": record.get("reference_comparison"),
+        "reference_warnings": record.get("reference_warnings", []),
         "plots": {
             "mito_violin": mito_violin,
             "genes_violin": genes_violin,
@@ -120,6 +132,7 @@ def build_report(adata, output_path: str) -> None:
             "doublet_scores": doublet_scores,
             "waterfall": waterfall,
             "per_sample": per_sample_plot,
+            "cell_labels": cell_label_plot,
         },
     }
 

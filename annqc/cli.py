@@ -88,7 +88,61 @@ def main():
     show_default=True,
     help="Stringency of MAD-based auto-thresholds. Only used with --auto-thresholds.",
 )
-def run_cmd(input, output, report, config, sample_key, seed, verbose, auto_thresholds, dry_run, no_doublet_detection, mito_prefix, auto_thresholds_level):
+@click.option(
+    "--tissue-preset",
+    default=None,
+    metavar="PRESET",
+    help=(
+        "Apply a tissue-aware QC preset before your config. "
+        "Valid: pbmc, tumor, brain_sn, organoid, gut, heart, kidney, embryo, low_input. "
+        "User config values override preset values."
+    ),
+)
+@click.option(
+    "--no-cluster-qc",
+    is_flag=True,
+    default=False,
+    help="Skip cluster-aware mito QC (no Leiden clustering). Faster but no cluster warnings.",
+)
+@click.option(
+    "--subsample-doublets",
+    default=0,
+    show_default=True,
+    type=int,
+    metavar="N",
+    help=(
+        "Subsample to N cells for Scrublet doublet detection. "
+        "Use for large datasets (>50k cells) to avoid out-of-memory errors. "
+        "Unsampled cells are marked as non-doublets. 0 = no subsampling."
+    ),
+)
+@click.option(
+    "--reference-tissue",
+    default=None,
+    metavar="TISSUE",
+    help=(
+        "Compare to reference atlas profiles for this tissue "
+        "(e.g. 'blood', 'kidney', 'brain'). "
+        "Requires a matching profile in annqc/reference/profiles/."
+    ),
+)
+@click.option(
+    "--reference-assay",
+    default=None,
+    metavar="ASSAY",
+    help=(
+        "Assay for reference comparison (e.g. \"10x 3' v3\" or '10x_v3'). "
+        "Required when --reference-tissue is set."
+    ),
+)
+@click.option(
+    "--reference-suspension-type",
+    default="cell",
+    show_default=True,
+    type=click.Choice(["cell", "nucleus"]),
+    help="Suspension type for reference profile lookup (cell or nucleus).",
+)
+def run_cmd(input, output, report, config, sample_key, seed, verbose, auto_thresholds, dry_run, no_doublet_detection, mito_prefix, auto_thresholds_level, tissue_preset, no_cluster_qc, subsample_doublets, reference_tissue, reference_assay, reference_suspension_type):
     """Run the AnnQC pipeline on INPUT.
 
     INPUT may be a path to a .h5ad file, a 10x HDF5 (.h5) file, or a
@@ -110,6 +164,12 @@ def run_cmd(input, output, report, config, sample_key, seed, verbose, auto_thres
             no_doublet_detection=no_doublet_detection,
             mito_prefix=mito_prefix,
             auto_thresholds_level=auto_thresholds_level,
+            tissue_preset=tissue_preset,
+            no_cluster_qc=no_cluster_qc,
+            subsample_doublets=subsample_doublets,
+            reference_tissue=reference_tissue,
+            reference_assay=reference_assay,
+            reference_suspension_type=reference_suspension_type,
         )
     except Exception as exc:
         if verbose:
@@ -161,6 +221,20 @@ def run_cmd(input, output, report, config, sample_key, seed, verbose, auto_thres
                 click.echo(f"  min counts:    {thr.get('min_counts')}")
         except (KeyError, TypeError):
             pass
+
+
+@main.command("list-presets")
+def list_presets_cmd():
+    """List all available tissue-aware QC presets."""
+    from annqc.presets import list_presets, TISSUE_PRESETS
+    click.echo("\nAvailable tissue presets (use with --tissue-preset NAME):\n")
+    for name, description in list_presets():
+        preset = TISSUE_PRESETS[name]
+        click.echo(f"  {name:<12}  {description}")
+        click.echo(f"               mito_max={preset['mito']['max_pct']}%  "
+                   f"min_genes={preset['cells']['min_genes']}  "
+                   f"min_counts={preset['cells']['min_counts']}")
+        click.echo()
 
 
 @main.command("validate-config")

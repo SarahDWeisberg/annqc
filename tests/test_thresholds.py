@@ -64,13 +64,16 @@ def test_suggest_thresholds_standard_keys(adata_with_qc):
 
 
 def test_suggest_thresholds_strict_lt_permissive(adata_with_qc):
-    """For mito_max_pct, strict < standard < permissive (stricter = lower cap)."""
-    result = suggest_thresholds(adata_with_qc)
+    """For mito_max_pct, strict < standard < permissive (stricter = lower cap).
+
+    Uses mito_min_pct=0 to test the ordering invariant without floor interference
+    (the synthetic dataset has low mito values that would all be clamped otherwise).
+    """
+    result = suggest_thresholds(adata_with_qc, mito_min_pct=0.0)
     strict_mito = result["strict"]["mito_max_pct"]
     standard_mito = result["standard"]["mito_max_pct"]
     permissive_mito = result["permissive"]["mito_max_pct"]
 
-    # All three should be non-None since MT- genes are present
     assert strict_mito is not None
     assert standard_mito is not None
     assert permissive_mito is not None
@@ -96,33 +99,35 @@ def test_suggest_thresholds_lower_bounds_nonnegative(adata_with_qc):
 
 
 def test_suggest_thresholds_formula(adata_with_qc):
-    """Verify threshold formulas for n_genes_by_counts.
+    """Verify threshold formulas for genes and mito (standard level).
 
-    Upper bound: median + 5 * MAD.
-    Lower bound (standard): p5 percentile of the distribution.
+    Genes upper: median + 5 * MAD.
+    Genes lower: max(p5, min_genes_floor=200).
+    Mito upper: max(median + 5 * MAD, mito_min_pct=10).
     """
-    vals = adata_with_qc.obs["n_genes_by_counts"].values.astype(float)
-    median = float(np.median(vals))
-    mad = float(np.median(np.abs(vals - median)))
+    genes = adata_with_qc.obs["n_genes_by_counts"].values.astype(float)
+    median_g = float(np.median(genes))
+    mad_g = float(np.median(np.abs(genes - median_g)))
+    expected_max_genes = median_g + 5 * mad_g
+    expected_min_genes = max(float(np.percentile(genes, 5)), 200.0)
 
-    expected_upper = median + 5 * mad
-    expected_lower_p5 = float(np.percentile(vals, 5))
+    mito = adata_with_qc.obs["pct_counts_mt"].values.astype(float)
+    median_m = float(np.median(mito))
+    mad_m = float(np.median(np.abs(mito - median_m)))
+    expected_mito_max = max(min(median_m + 5 * mad_m, 100.0), 10.0)
 
     result = suggest_thresholds(adata_with_qc)
     standard = result["standard"]
 
-    assert abs(standard["max_genes"] - expected_upper) < 1e-9, (
-        f"max_genes expected {expected_upper}, got {standard['max_genes']}"
+    assert abs(standard["max_genes"] - expected_max_genes) < 1e-9, (
+        f"max_genes expected {expected_max_genes}, got {standard['max_genes']}"
     )
-    # Lower bound: p5, or None if p5 == 0
-    if expected_lower_p5 == 0.0:
-        assert standard["min_genes"] is None, (
-            f"min_genes expected None (p5==0), got {standard['min_genes']}"
-        )
-    else:
-        assert abs(standard["min_genes"] - expected_lower_p5) < 1e-9, (
-            f"min_genes expected {expected_lower_p5} (p5), got {standard['min_genes']}"
-        )
+    assert abs(standard["min_genes"] - expected_min_genes) < 1e-9, (
+        f"min_genes expected {expected_min_genes}, got {standard['min_genes']}"
+    )
+    assert abs(standard["mito_max_pct"] - expected_mito_max) < 1e-9, (
+        f"mito_max_pct expected {expected_mito_max} (MAD floored at 10), got {standard['mito_max_pct']}"
+    )
 
 
 def test_suggest_thresholds_raw_has_median_mad(adata_with_qc):

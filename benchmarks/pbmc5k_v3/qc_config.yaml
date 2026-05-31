@@ -1,0 +1,29 @@
+mito:
+  prefix: "MT-"
+  max_pct: 25
+
+ribo:
+  prefix: "RPS|RPL"
+  max_pct: 50
+
+cells:
+  min_genes: 1000
+  max_genes: 4100
+  min_counts: 500
+  max_counts: null
+
+genes:
+  min_cells: 3
+
+doublets:
+  method: "scrublet"
+  threshold: "auto"
+  simulate_doublet_ratio: 2.0
+
+normalization:
+  method: "log1p"
+  target_sum: 10000
+
+report:
+  title: "5k PBMC v3 QC Report"
+  author: ""

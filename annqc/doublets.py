@@ -7,7 +7,13 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def detect_doublets(adata, threshold="auto", simulate_doublet_ratio: float = 2.0, seed: int = 0):
+def detect_doublets(
+    adata,
+    threshold="auto",
+    simulate_doublet_ratio: float = 2.0,
+    seed: int = 0,
+    subsample_n: int = 0,
+):
     """Run Scrublet doublet detection on adata.
 
     Adds to adata.obs:
@@ -19,21 +25,41 @@ def detect_doublets(adata, threshold="auto", simulate_doublet_ratio: float = 2.0
 
     The resolved doublet threshold (float) is stored in
     adata.uns['annqc']['thresholds']['doublet_threshold'] if the key exists.
+
+    Parameters
+    ----------
+    subsample_n : int
+        If > 0 and n_cells > subsample_n, run Scrublet on a random subsample
+        of subsample_n cells. Unsampled cells receive NaN scores and are
+        marked as non-doublets. Use to avoid out-of-memory errors on large
+        datasets. 0 means no subsampling.
     """
     n_cells = adata.n_obs
     logger.info("Running Scrublet on %d cells (seed=%d, threshold=%s)", n_cells, seed, threshold)
 
+    # --- Subsampling ---
+    _subsampled = False
+    _subsample_indices = None
+    if subsample_n > 0 and n_cells > subsample_n:
+        rng = np.random.default_rng(seed)
+        _subsample_indices = rng.choice(n_cells, size=subsample_n, replace=False)
+        _subsampled = True
+        logger.warning(
+            "Subsampling %d → %d cells for doublet detection (memory-safe mode). "
+            "%d cells will not be scored and will be marked as non-doublets.",
+            n_cells, subsample_n, n_cells - subsample_n,
+        )
+        if "annqc" in adata.uns:
+            adata.uns["annqc"]["doublet_subsampled"] = True
+            adata.uns["annqc"]["doublet_subsample_n"] = subsample_n
+
     _elements = adata.n_obs * adata.n_vars
-    if _elements > 500_000_000:
+    if _elements > 500_000_000 and not _subsampled:
         _estimated_gb = (_elements * 4) / 1e9
         logger.warning(
             "Large matrix detected (%d cells × %d genes = %d elements). "
             "Dense conversion for Scrublet may require %.1f GB of RAM. "
-            "Options: "
-            "(1) use --no-doublet-detection if memory is limited (results will be incomplete), "
-            "(2) pre-filter to fewer genes before running AnnQC, "
-            "(3) subsample to <50,000 cells for doublet detection. "
-            "Future versions of AnnQC will support memory-efficient doublet detection.",
+            "Use --subsample-doublets 50000 to score a representative subset.",
             adata.n_obs, adata.n_vars, _elements, _estimated_gb,
         )
 
@@ -46,15 +72,23 @@ def detect_doublets(adata, threshold="auto", simulate_doublet_ratio: float = 2.0
         import scipy.sparse as sp
         import scrublet as scr
 
-        counts = adata.X
-        if sp.issparse(counts):
-            counts = counts.toarray()
-        counts = counts.astype(np.float32)
+        if _subsampled:
+            counts_full = adata.X
+            if sp.issparse(counts_full):
+                counts_input = counts_full[_subsample_indices].toarray()
+            else:
+                counts_input = counts_full[_subsample_indices]
+        else:
+            counts_input = adata.X
+            if sp.issparse(counts_input):
+                counts_input = counts_input.toarray()
+        counts_input = counts_input.astype(np.float32)
 
-        n_components = min(30, n_cells - 1, counts.shape[1] - 1)
+        n_scored = counts_input.shape[0]
+        n_components = min(30, n_scored - 1, counts_input.shape[1] - 1)
 
         scrub = scr.Scrublet(
-            counts_matrix=counts,
+            counts_matrix=counts_input,
             random_state=seed,
             sim_doublet_ratio=simulate_doublet_ratio,
         )
@@ -74,14 +108,25 @@ def detect_doublets(adata, threshold="auto", simulate_doublet_ratio: float = 2.0
         else:
             resolved_threshold = float(scrub.threshold_)
 
-        adata.obs["annqc_doublet_score"] = doublet_scores.astype(float)
-        adata.obs["annqc_is_doublet"] = predicted_doublets.astype(bool)
+        # Expand scores to full cell array (unsampled cells get NaN / False)
+        if _subsampled:
+            full_scores = np.full(n_cells, np.nan)
+            full_doublets = np.zeros(n_cells, dtype=bool)
+            full_scores[_subsample_indices] = doublet_scores.astype(float)
+            full_doublets[_subsample_indices] = predicted_doublets.astype(bool)
+        else:
+            full_scores = doublet_scores.astype(float)
+            full_doublets = predicted_doublets.astype(bool)
 
-        n_doublets = int(predicted_doublets.sum())
+        adata.obs["annqc_doublet_score"] = full_scores
+        adata.obs["annqc_is_doublet"] = full_doublets
+
+        n_doublets = int(full_doublets.sum())
         logger.info(
-            "Scrublet complete: %d doublets (%.1f%%), threshold=%.3f",
+            "Scrublet complete: %d doublets (%.1f%% of %d scored cells), threshold=%.3f",
             n_doublets,
-            100.0 * n_doublets / max(n_cells, 1),
+            100.0 * n_doublets / max(n_scored, 1),
+            n_scored,
             resolved_threshold,
         )
 

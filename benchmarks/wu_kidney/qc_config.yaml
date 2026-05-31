@@ -1,0 +1,29 @@
+mito:
+  prefix: "MT-"
+  max_pct: 30
+
+ribo:
+  prefix: "RPS|RPL"
+  max_pct: 50
+
+cells:
+  min_genes: 200
+  max_genes: 2500
+  min_counts: null
+  max_counts: null
+
+genes:
+  min_cells: 3
+
+doublets:
+  method: "scrublet"
+  threshold: "auto"
+  simulate_doublet_ratio: 2.0
+
+normalization:
+  method: "log1p"
+  target_sum: 10000
+
+report:
+  title: "Wu 2019 Human Kidney QC Report"
+  author: ""

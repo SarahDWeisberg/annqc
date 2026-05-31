@@ -432,3 +432,72 @@ def plot_per_sample_summary(per_sample_dict):
     _clean_axes(fig, ygrid=True)
     fig.update_yaxes(showgrid=True, gridcolor="#EEEEEE")
     return fig.to_json()
+
+
+# ---------------------------------------------------------------------------
+# Function 6: plot_cell_label_distribution
+# ---------------------------------------------------------------------------
+
+_LABEL_COLORS = {
+    "pass": "#27AE60",
+    "review": "#F39C12",
+    "high_mito": "#E67E22",
+    "low_quality": "#E74C3C",
+    "damaged": "#8E44AD",
+    "doublet": "#2C3E50",
+}
+_LABEL_DISPLAY = {
+    "pass": "Pass",
+    "review": "Review",
+    "high_mito": "High Mito",
+    "low_quality": "Low Quality",
+    "damaged": "Damaged",
+    "doublet": "Doublet",
+}
+_LABEL_ORDER = ["pass", "review", "high_mito", "low_quality", "damaged", "doublet"]
+
+
+def plot_cell_label_distribution(cell_label_counts: dict):
+    """Stacked horizontal bar showing all six cell label categories."""
+    total = sum(cell_label_counts.values())
+    if total == 0:
+        return None
+
+    traces = []
+    for lbl in _LABEL_ORDER:
+        count = cell_label_counts.get(lbl, 0)
+        if count == 0:
+            continue
+        pct = 100.0 * count / total
+        display = _LABEL_DISPLAY.get(lbl, lbl)
+        traces.append(go.Bar(
+            x=[count],
+            y=["Cells"],
+            orientation="h",
+            name=display,
+            marker_color=_LABEL_COLORS.get(lbl, "#AAAAAA"),
+            text=[f"{display}: {count:,} ({pct:.1f}%)"],
+            textposition="inside",
+            insidetextanchor="middle",
+            hovertemplate=f"{display}: {count:,} ({pct:.1f}%)<extra></extra>",
+        ))
+
+    if not traces:
+        return None
+
+    _label_layout = {**_LAYOUT_DEFAULTS}
+    _label_layout["margin"] = dict(l=60, r=40, t=80, b=60)
+
+    fig = go.Figure(data=traces)
+    fig.update_layout(
+        **_label_layout,
+        title=dict(text="Cell Label Distribution", x=0.5, xanchor="center"),
+        barmode="stack",
+        xaxis_title="Number of Cells",
+        height=220,
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="right", x=1),
+    )
+    _clean_axes(fig, xgrid=True)
+    fig.update_xaxes(showgrid=True, gridcolor="#EEEEEE")
+    return fig.to_json()

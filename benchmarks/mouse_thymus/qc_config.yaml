@@ -1,0 +1,29 @@
+mito:
+  prefix: "mt-"
+  max_pct: 4.5
+
+ribo:
+  prefix: "Rps|Rpl"
+  max_pct: 50
+
+cells:
+  min_genes: 300
+  max_genes: 6000
+  min_counts: 500
+  max_counts: null
+
+genes:
+  min_cells: 3
+
+doublets:
+  method: "scrublet"
+  threshold: "auto"
+  simulate_doublet_ratio: 2.0
+
+normalization:
+  method: "log1p"
+  target_sum: 10000
+
+report:
+  title: "Mouse Thymic T-cells QC Report"
+  author: ""
