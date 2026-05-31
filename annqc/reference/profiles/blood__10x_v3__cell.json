@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "tissue": "blood",
+  "assay": "10x_v3",
+  "assay_raw": "10x_v3",
+  "suspension_type": "cell",
+  "species": "Homo sapiens",
+  "generated_date": "2026-05-31",
+  "census_version": "local",
+  "inclusion_criteria": "local h5ad files, tissue=blood, assay=10x_v3",
+  "n_datasets": 3,
+  "n_cells_total": 0,
+  "confidence": "low",
+  "disease_composition": {},
+  "development_stage_composition": {},
+  "metrics": {
+    "pct_counts_mt": {
+      "dataset_medians": [
+        10.2876,
+        8.4457,
+        9.1453
+      ],
+      "summary": {
+        "median": 9.1453,
+        "q25": 8.7955,
+        "q75": 9.7165,
+        "mad": 0.6996,
+        "p5": 8.5157,
+        "p95": 10.1734,
+        "n": 3
+      }
+    },
+    "n_genes_by_counts": {
+      "dataset_medians": [
+        1919.0,
+        2171.0,
+        1906.0
+      ],
+      "summary": {
+        "median": 1919.0,
+        "q25": 1912.5,
+        "q75": 2045.0,
+        "mad": 13.0,
+        "p5": 1907.3,
+        "p95": 2145.8,
+        "n": 3
+      }
+    },
+    "total_counts": {
+      "dataset_medians": [
+        6628.0,
+        7803.0,
+        6521.0
+      ],
+      "summary": {
+        "median": 6628.0,
+        "q25": 6574.5,
+        "q75": 7215.5,
+        "mad": 107.0,
+        "p5": 6531.7,
+        "p95": 7685.5,
+        "n": 3
+      }
+    },
+    "pct_counts_ribo": {
+      "dataset_medians": [
+        26.1362,
+        28.358,
+        25.7466
+      ],
+      "summary": {
+        "median": 26.1362,
+        "q25": 25.9414,
+        "q75": 27.2471,
+        "mad": 0.3896,
+        "p5": 25.7855,
+        "p95": 28.1358,
+        "n": 3
+      }
+    }
+  }
+}

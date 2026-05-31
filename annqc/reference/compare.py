@@ -33,9 +33,9 @@ def find_profile(tissue: str, assay: str, suspension_type: str = "cell") -> dict
 def _percentile_rank(value: float, reference_values: list[float]) -> float | None:
     """Return the percentile rank (0-100) of value within reference_values.
 
-    Returns None if reference_values has fewer than 5 entries.
+    Returns None if reference_values has fewer than 3 entries.
     """
-    if len(reference_values) < 5:
+    if len(reference_values) < 3:
         return None
     arr = np.array(reference_values, dtype=float)
     return float(100.0 * (arr < value).sum() / len(arr))
@@ -108,7 +108,7 @@ def compare_to_reference(
         reference_medians = metric_profile.get("dataset_medians", [])
         summary = metric_profile.get("summary", {})
 
-        if len(reference_medians) < 5:
+        if len(reference_medians) < 3:
             continue
 
         # Dataset-level statistic: median of per-cell values

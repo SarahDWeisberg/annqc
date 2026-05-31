@@ -10,7 +10,7 @@
   "inclusion_criteria": "local h5ad files, tissue=kidney, assay=10x_v2",
   "n_datasets": 3,
   "n_cells_total": 0,
-  "confidence": "insufficient",
+  "confidence": "low",
   "disease_composition": {},
   "development_stage_composition": {},
   "metrics": {

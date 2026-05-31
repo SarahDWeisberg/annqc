@@ -1,0 +1,138 @@
+{
+  "strategy_a": {
+    "label": "blood-calibrated (mito\u22645%)",
+    "cell_counts": {
+      "input": 25404,
+      "after_mito_filter": 11341,
+      "after_gene_filter": 11328,
+      "after_count_filter": 11328,
+      "after_doublet_filter": 11328,
+      "output": 11328,
+      "genes_before": 33538,
+      "genes_after": 18154
+    },
+    "thresholds": {
+      "method": "manual",
+      "mito_max_pct": 5.0,
+      "min_genes": 200,
+      "max_genes": 6000,
+      "min_counts": 500,
+      "doublet_threshold": NaN
+    }
+  },
+  "strategy_b": {
+    "label": "kidney preset (mito\u226430%)",
+    "cell_counts": {
+      "input": 25404,
+      "after_mito_filter": 23530,
+      "after_gene_filter": 23513,
+      "after_count_filter": 23513,
+      "after_doublet_filter": 23513,
+      "output": 23513,
+      "genes_before": 33538,
+      "genes_after": 20132
+    },
+    "thresholds": {
+      "method": "manual",
+      "mito_max_pct": 30.0,
+      "min_genes": 200,
+      "max_genes": 6000,
+      "min_counts": 500,
+      "doublet_threshold": NaN
+    }
+  },
+  "reference_comparison": {
+    "blood": {
+      "n_references": 3,
+      "confidence": "low",
+      "comparison": {
+        "pct_counts_mt": {
+          "dataset_median": 6.25,
+          "reference_median": 9.1453,
+          "reference_q25": 8.7955,
+          "reference_q75": 9.7165,
+          "reference_p5": 8.5157,
+          "reference_p95": 10.1734,
+          "percentile": 0.0,
+          "flag": "LOW"
+        },
+        "n_genes_by_counts": {
+          "dataset_median": 786.0,
+          "reference_median": 1919.0,
+          "reference_q25": 1912.5,
+          "reference_q75": 2045.0,
+          "reference_p5": 1907.3,
+          "reference_p95": 2145.8,
+          "percentile": 0.0,
+          "flag": "LOW"
+        },
+        "total_counts": {
+          "dataset_median": 1846.0,
+          "reference_median": 6628.0,
+          "reference_q25": 6574.5,
+          "reference_q75": 7215.5,
+          "reference_p5": 6531.7,
+          "reference_p95": 7685.5,
+          "percentile": 0.0,
+          "flag": "LOW"
+        },
+        "pct_counts_ribo": {
+          "dataset_median": 18.726,
+          "reference_median": 26.1362,
+          "reference_q25": 25.9414,
+          "reference_q75": 27.2471,
+          "reference_p5": 25.7855,
+          "reference_p95": 28.1358,
+          "percentile": 0.0,
+          "flag": "LOW"
+        }
+      }
+    },
+    "kidney": {
+      "n_references": 3,
+      "confidence": "low",
+      "comparison": {
+        "pct_counts_mt": {
+          "dataset_median": 6.25,
+          "reference_median": 10.9681,
+          "reference_q25": 6.275,
+          "reference_q75": 11.2199,
+          "reference_p5": 2.5205,
+          "reference_p95": 11.4213,
+          "percentile": 33.3,
+          "flag": "NORMAL"
+        },
+        "n_genes_by_counts": {
+          "dataset_median": 786.0,
+          "reference_median": 837.0,
+          "reference_q25": 760.5,
+          "reference_q75": 862.0,
+          "reference_p5": 699.3,
+          "reference_p95": 882.0,
+          "percentile": 33.3,
+          "flag": "NORMAL"
+        },
+        "total_counts": {
+          "dataset_median": 1846.0,
+          "reference_median": 2081.0,
+          "reference_q25": 1790.0,
+          "reference_q75": 2087.5,
+          "reference_p5": 1557.2,
+          "reference_p95": 2092.7,
+          "percentile": 33.3,
+          "flag": "NORMAL"
+        },
+        "pct_counts_ribo": {
+          "dataset_median": 18.726,
+          "reference_median": 19.6866,
+          "reference_q25": 16.8772,
+          "reference_q75": 20.4164,
+          "reference_p5": 14.6297,
+          "reference_p95": 21.0003,
+          "percentile": 33.3,
+          "flag": "NORMAL"
+        }
+      }
+    }
+  }
+}

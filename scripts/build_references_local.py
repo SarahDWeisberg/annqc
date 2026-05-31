@@ -48,11 +48,15 @@ MIN_CELLS = 200
 
 
 def _process_one(path: str, dataset_id: str, mito_prefix: str = "MT-") -> dict | None:
-    """Load one h5ad, compute QC metrics, return per-dataset medians."""
+    """Load one h5ad or 10x HDF5 file, compute QC metrics, return per-dataset medians."""
     import scanpy as sc
 
+    p = Path(path)
     try:
-        adata = sc.read_h5ad(path)
+        if p.suffix == ".h5":
+            adata = sc.read_10x_h5(path)
+        else:
+            adata = sc.read_h5ad(path)
         adata.var_names_make_unique()
     except Exception as exc:
         logger.warning("Could not load %s: %s", path, exc)

@@ -13,7 +13,7 @@ _PROFILES_DIR = Path(__file__).parent / "profiles"
 CONFIDENCE_THRESHOLDS = {
     "high": 20,
     "medium": 10,
-    "low": 5,
+    "low": 3,
 }
 
 METRICS = ["pct_counts_mt", "n_genes_by_counts", "total_counts", "pct_counts_ribo"]
