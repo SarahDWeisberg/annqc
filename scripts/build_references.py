@@ -277,7 +277,7 @@ def build_profile(
     metrics_section = {}
     for metric in METRICS:
         vals = per_dataset_medians.get(metric, [])
-        if len(vals) >= 5:
+        if len(vals) >= 3:
             metrics_section[metric] = {
                 "dataset_medians": [round(v, 4) for v in vals],
                 "summary": _distribution_summary(vals),

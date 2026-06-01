@@ -1,0 +1,92 @@
+{
+  "n_total": 25404,
+  "n_kept": 11341,
+  "n_blood_removed": 12189,
+  "n_kidney_removed": 1874,
+  "pct_blood_removed": 48.0,
+  "pct_kidney_removed": 7.4,
+  "per_donor_mito_median": {
+    "kidney1": 11.47,
+    "kidney2": 10.97,
+    "kidney3": 1.58
+  },
+  "cluster_summary": [
+    {
+      "cluster": "0",
+      "n_cells": 6493,
+      "median_mito_pct": 12.27,
+      "n_blood_removed": 4902,
+      "pct_blood_removed": 75.5
+    },
+    {
+      "cluster": "1",
+      "n_cells": 5205,
+      "median_mito_pct": 4.0,
+      "n_blood_removed": 2123,
+      "pct_blood_removed": 40.8
+    },
+    {
+      "cluster": "2",
+      "n_cells": 4725,
+      "median_mito_pct": 16.22,
+      "n_blood_removed": 3281,
+      "pct_blood_removed": 69.4
+    },
+    {
+      "cluster": "3",
+      "n_cells": 3909,
+      "median_mito_pct": 0.22,
+      "n_blood_removed": 0,
+      "pct_blood_removed": 0.0
+    },
+    {
+      "cluster": "4",
+      "n_cells": 1304,
+      "median_mito_pct": 0.65,
+      "n_blood_removed": 29,
+      "pct_blood_removed": 2.2
+    },
+    {
+      "cluster": "5",
+      "n_cells": 933,
+      "median_mito_pct": 5.83,
+      "n_blood_removed": 527,
+      "pct_blood_removed": 56.5
+    },
+    {
+      "cluster": "6",
+      "n_cells": 721,
+      "median_mito_pct": 3.39,
+      "n_blood_removed": 241,
+      "pct_blood_removed": 33.4
+    },
+    {
+      "cluster": "7",
+      "n_cells": 667,
+      "median_mito_pct": 11.31,
+      "n_blood_removed": 538,
+      "pct_blood_removed": 80.7
+    },
+    {
+      "cluster": "8",
+      "n_cells": 634,
+      "median_mito_pct": 4.51,
+      "n_blood_removed": 289,
+      "pct_blood_removed": 45.6
+    },
+    {
+      "cluster": "9",
+      "n_cells": 432,
+      "median_mito_pct": 13.31,
+      "n_blood_removed": 226,
+      "pct_blood_removed": 52.3
+    },
+    {
+      "cluster": "10",
+      "n_cells": 381,
+      "median_mito_pct": 0.33,
+      "n_blood_removed": 33,
+      "pct_blood_removed": 8.7
+    }
+  ]
+}
